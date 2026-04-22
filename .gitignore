@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local/private configuration
+config.local.json
+.env
+.env.*
+
+# Sensitive or large municipal data
+data/
+Data/
+private-data/
+*.xlsx
+*.xls
+*.xlsm
+*.docx
+*.pptx
+*.pdf
+*.zip
+*.sie
+*.SIE
+*.dta
+*.sas7bdat
+
+# Keep synthetic sample files trackable.
+!samples/*.csv
+
+# Generated exports and OS/editor noise
+exports/
+*.log
+.DS_Store
+.vscode/
+.idea/

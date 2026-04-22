@@ -1,0 +1,16 @@
+[project]
+name = "esrs-municipal-spending-tool"
+version = "0.1.0"
+description = "Local tool for classifying municipal spending against ESRS environmental themes"
+readme = "README.md"
+requires-python = ">=3.9"
+license = "Apache-2.0"
+authors = [
+  { name = "Ajitha Duvvuri" }
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/ADcoder1/esrs-municipal-spending-tool"
+Documentation = "https://github.com/ADcoder1/esrs-municipal-spending-tool#readme"
+Issues = "https://github.com/ADcoder1/esrs-municipal-spending-tool/issues"

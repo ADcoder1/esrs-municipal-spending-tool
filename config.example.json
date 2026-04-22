@@ -1,0 +1,8 @@
+{
+  "invoice_path": "samples/sample_invoices.csv",
+  "mapping_path": "samples/sample_mapping.csv",
+  "data_dir": "samples",
+  "meeting_notes_path": "docs/meeting-notes-template.md",
+  "gap_report_path": "docs/gap-analysis-template.md",
+  "code_plan_path": "docs/code-plan-template.csv"
+}

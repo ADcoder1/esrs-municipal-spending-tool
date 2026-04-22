@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+title: ESRS Municipal Spending Tool
+message: If you use this software in research or public-sector work, please cite it.
+type: software
+authors:
+  - family-names: Duvvuri
+    given-names: Ajitha
+license: Apache-2.0
+repository-code: https://github.com/ADcoder1/esrs-municipal-spending-tool
+abstract: A local tool for classifying municipal procurement and invoice data against ESRS environmental themes.

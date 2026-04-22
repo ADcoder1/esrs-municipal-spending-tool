@@ -1,0 +1,8 @@
+{
+  "invoice_path": "/absolute/path/to/private/invoices.xlsx",
+  "mapping_path": "/absolute/path/to/private/category_mapping.xlsx",
+  "data_dir": "/absolute/path/to/private/data",
+  "meeting_notes_path": "/absolute/path/to/private/meeting_notes.docx",
+  "gap_report_path": "/absolute/path/to/private/gap_analysis.docx",
+  "code_plan_path": "/absolute/path/to/private/code_plan.xlsx"
+}
