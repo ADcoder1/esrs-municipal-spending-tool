@@ -1,0 +1,6 @@
+Nivå 1 (SV),Nivå 2 (SV),Nivå 3 (SV),Nivå 1 (EN),Nivå 2 (EN),Nivå 3 (EN),Proposed ESRS Primary (E1–E5 / None),Proposed ESRS Secondary (optional),Confidence (High / Medium / Needs review),Comments
+Fordon/Maskiner,Fordon,Biblioteksbuss,Vehicles and machinery,Vehicles,Library bus,E1,E5,Medium,Transport-related spend usually needs context.
+Internservice,Avfallshantering,,Internal services,Waste management,,E5,,High,
+"El, värme, vatten",Gasol och gasprodukter,,Electricity heating water,LPG and gas products,,E1,E2,Medium,
+Entreprenad/Drift/Underhåll,Entreprenör,Grönyteskötsel,Construction operations maintenance,Contractor,Green area maintenance,E4,E1,Needs review,Green-space spend is not automatically biodiversity-positive.
+Administrativa tjänster,Juridiska tjänster,,Administrative services,Legal services,,None,,High,

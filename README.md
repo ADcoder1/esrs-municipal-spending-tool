@@ -6,6 +6,18 @@ invoice data against ESRS environmental themes.
 The project publishes the tool and method. Real municipal data should stay
 private.
 
+## Public Demo
+
+Once GitHub Pages is enabled, the public browser-only demo is available at:
+
+```text
+https://adcoder1.github.io/esrs-municipal-spending-tool/
+```
+
+The public demo uses synthetic sample data and supports CSV files directly in
+the browser. No data is uploaded to a server. For XLSX files and private
+municipal datasets, use the local Python app.
+
 ## Why This Exists
 
 Municipal finance and sustainability teams often need to answer a practical
@@ -90,6 +102,7 @@ Supported settings:
 - `static/`: browser UI
 - `samples/`: synthetic public sample data
 - `docs/`: methodology, templates, and data policy
+- `docs/index.html`: browser-only public demo for GitHub Pages
 - `config.example.json`: public sample configuration
 - `config.local.example.json`: private configuration template
 

@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ESRS Municipal Spending Tool</title>
+    <link rel="stylesheet" href="pages.css" />
+  </head>
+  <body>
+    <header>
+      <h1>ESRS Municipal Spending Tool</h1>
+      <p>
+        Browser-only demo for classifying municipal procurement and invoice data
+        against ESRS environmental themes. This public page uses synthetic sample
+        data. If you upload local CSV files, they are processed in your browser
+        and are not sent to a server.
+      </p>
+    </header>
+
+    <main>
+      <section class="panel notice">
+        <strong>Prototype scope:</strong>
+        This demo is for exploring classification logic and review workflows. It
+        does not calculate environmental performance or produce formal ESRS
+        disclosures.
+      </section>
+
+      <section class="panel">
+        <h2>Analyze Data</h2>
+        <div class="controls">
+          <label>
+            <span>Invoice / procurement CSV</span>
+            <input id="invoiceFile" type="file" accept=".csv" />
+          </label>
+          <label>
+            <span>ESRS category mapping CSV</span>
+            <input id="mappingFile" type="file" accept=".csv" />
+          </label>
+        </div>
+        <div class="actions">
+          <button id="sampleButton" class="secondary" type="button">Use Sample Data</button>
+          <button id="analyzeButton" class="primary" type="button">Analyze CSV Files</button>
+          <button id="exportButton" class="secondary hidden" type="button">Export Classified CSV</button>
+          <a class="button" href="https://github.com/ADcoder1/esrs-municipal-spending-tool">View Source</a>
+        </div>
+        <div id="status" class="status"></div>
+      </section>
+
+      <section id="results" class="hidden">
+        <div class="metric-grid">
+          <div class="metric"><span>Rows</span><strong id="rowsMetric">0</strong></div>
+          <div class="metric"><span>Mapping Entries</span><strong id="mappingMetric">0</strong></div>
+          <div class="metric"><span>Classified E1-E5</span><strong id="classifiedMetric">0%</strong></div>
+          <div class="metric"><span>None Rows</span><strong id="noneMetric">0</strong></div>
+        </div>
+
+        <div class="two-column">
+          <section class="panel">
+            <h2>Spending by ESRS Theme</h2>
+            <div id="themeBars" class="bars"></div>
+          </section>
+          <section class="panel">
+            <h2>Rows by Confidence</h2>
+            <div id="confidenceBars" class="bars"></div>
+          </section>
+        </div>
+
+        <section class="panel">
+          <h2>Top Categories</h2>
+          <table>
+            <thead>
+              <tr><th>ESRS</th><th>Category</th><th>Rows</th><th>Amount</th></tr>
+            </thead>
+            <tbody id="categoryRows"></tbody>
+          </table>
+        </section>
+      </section>
+    </main>
+    <script src="pages-app.js"></script>
+  </body>
+</html>

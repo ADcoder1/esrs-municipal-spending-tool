@@ -1,0 +1,6 @@
+Förvaltning,Avdelning/Område,Enhet,Konto,Projekt,Leverantörsnamn,Fakturatext,UNSPSC,Inköpskategori 1,Inköpskategori 2,Inköpskategori 3,Köp inom avtal,Köp utanför avtal,Köp utan avtal
+Stadsbyggnadsförvaltningen,Stadsmiljö,Parkenhet,6156,10060,Green Services AB,Skötsel av grönytor,72141500,Entreprenad/Drift/Underhåll,Entreprenör,Grönyteskötsel,150000,0,0
+Miljöförvaltningen,Miljöstrategi,Uppföljning,7490,941,Waste Partner AB,Återvinning och avfallshantering,76121500,Internservice,Avfallshantering,,90000,0,0
+Kulturförvaltningen,Program och Produktion,Bibliotek,7012,20126,Bus Lease AB,Biblioteksbuss leasing,78110000,Fordon/Maskiner,Fordon,Biblioteksbuss,0,250000,0
+Stadsledningsförvaltningen,Kansli,Juridik,7430,,Law Office AB,Juridisk rådgivning,80121600,Administrativa tjänster,Juridiska tjänster,,32000,0,0
+Fastighetsförvaltningen,Drift,Energi,7430,60065,Energy Co,Gasol och gasprodukter,15111500,"El, värme, vatten",Gasol och gasprodukter,,78000,0,0
