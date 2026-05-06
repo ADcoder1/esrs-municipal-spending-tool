@@ -1,10 +1,22 @@
 # ESRS Municipal Spending Tool
 
-Local, dependency-free prototype for classifying municipal procurement or
-invoice data against ESRS environmental themes.
+Local, dependency-free tool for classifying municipal procurement or invoice
+data against ESRS environmental themes.
 
 The project publishes the tool and method. Real municipal data should stay
 private.
+
+## Main Tool
+
+The main product in this repository is the local browser app:
+
+```text
+http://127.0.0.1:8765
+```
+
+It uses a browser interface, but runs classification through the local Python
+backend so it can handle large municipal XLSX workbooks, private files, and
+configured reference materials.
 
 ## Public Demo
 
@@ -17,7 +29,8 @@ https://adcoder1.github.io/esrs-municipal-spending-tool/
 The public demo uses synthetic sample data and supports CSV and XLSX files
 directly in the browser. No data is uploaded to a server. If no separate
 mapping file is uploaded, the demo uses its built-in sample mapping. For
-private municipal datasets and the fuller local workflow, use the Python app.
+private municipal datasets, large Excel workbooks, and the fuller review
+workflow, use the main local app.
 
 ## Why This Exists
 
@@ -52,7 +65,7 @@ or produce formal ESRS disclosures.
 - Exports classified rows to CSV
 - Exports a category validation CSV for city feedback
 
-## Run
+## Run The Main Tool
 
 ```bash
 python3 app.py
@@ -64,7 +77,8 @@ Open the URL shown in the terminal, usually:
 http://127.0.0.1:8765
 ```
 
-By default, the app uses synthetic sample files from `samples/`.
+By default, the app uses synthetic sample files from `samples/`, but the local
+UI is designed to be the primary analysis workspace.
 
 ## Use Private Local Data
 
@@ -100,7 +114,7 @@ Supported settings:
 
 - `app.py`: local app entry point
 - `esrs_tool/`: Python backend and XLSX/CSV parser
-- `static/`: browser UI
+- `static/`: main local browser UI
 - `samples/`: synthetic public sample data
 - `docs/`: methodology, templates, and data policy
 - `docs/index.html`: browser-only public demo for GitHub Pages

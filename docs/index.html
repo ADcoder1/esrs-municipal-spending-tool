@@ -11,10 +11,10 @@
     <header>
       <h1>ESRS Municipal Spending Tool</h1>
       <p>
-        Browser-only demo for classifying municipal procurement and invoice data
-        against ESRS environmental themes. This public page uses synthetic sample
-        data. If you upload local CSV or Excel files, they are processed in your
-        browser and are not sent to a server.
+        Public browser demo for exploring ESRS classification logic. The main
+        municipal workflow lives in the local analysis app. This public page
+        uses synthetic sample data. If you upload local CSV or Excel files,
+        they are processed in your browser and are not sent to a server.
       </p>
     </header>
 
@@ -24,7 +24,8 @@
         This demo is for exploring classification logic and review workflows. It
         does not calculate environmental performance or produce formal ESRS
         disclosures. Excel support reads the first worksheet in the uploaded
-        file.
+        file. Very large Excel workbooks should be run in the local analysis
+        app instead.
       </section>
 
       <section class="panel">
@@ -33,7 +34,7 @@
           <label>
             <span>Invoice / procurement file</span>
             <input id="invoiceFile" type="file" accept=".csv,.xlsx" />
-            <small>Upload CSV or Excel (.xlsx).</small>
+            <small>Upload CSV or Excel (.xlsx). Large municipal Excel workbooks should be run in the local analysis app instead.</small>
           </label>
           <label>
             <span>Optional category-to-ESRS mapping</span>

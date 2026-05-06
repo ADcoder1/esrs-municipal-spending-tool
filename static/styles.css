@@ -50,15 +50,65 @@ h2 {
   margin-bottom: 16px;
 }
 
-p {
+.title-block p {
   color: #c8d4cd;
   margin: 10px 0 0;
+  max-width: 760px;
 }
 
 .shell {
   margin: 0 auto;
   max-width: 1280px;
   padding: 24px clamp(16px, 3vw, 36px) 56px;
+}
+
+.source-panel {
+  margin-bottom: 18px;
+  padding: 20px;
+}
+
+.section-head {
+  align-items: baseline;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.section-meta {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.source-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.source-item {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 6px;
+  padding-top: 12px;
+}
+
+.source-label {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.source-item strong {
+  font-size: 16px;
+}
+
+.source-meta-line {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
 }
 
 .panel,
@@ -91,6 +141,12 @@ label > span,
   color: var(--muted);
   font-size: 13px;
   font-weight: 650;
+}
+
+.helper {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 input[type="file"],
@@ -335,11 +391,13 @@ th.amount {
 @media (max-width: 860px) {
   .app-header,
   .actions,
-  .tabs {
+  .tabs,
+  .section-head {
     align-items: stretch;
     flex-direction: column;
   }
 
+  .source-grid,
   .control-grid,
   .metric-grid,
   .two-column {

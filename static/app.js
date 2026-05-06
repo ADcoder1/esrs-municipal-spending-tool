@@ -1,9 +1,23 @@
 const form = document.querySelector("#analyzeForm");
-const sourceStatus = document.querySelector("#sourceStatus");
 const statusPanel = document.querySelector("#statusPanel");
 const results = document.querySelector("#results");
 const downloadLink = document.querySelector("#downloadLink");
 const categoryDownloadLink = document.querySelector("#categoryDownloadLink");
+const invoiceInput = document.querySelector("#invoiceFile");
+const mappingInput = document.querySelector("#mappingFile");
+const useDefaultInvoice = document.querySelector("#useDefaultInvoice");
+const useDefaultMapping = document.querySelector("#useDefaultMapping");
+const sheetIndexInput = document.querySelector("#sheetIndex");
+const sheetHint = document.querySelector("#sheetHint");
+const sourceSummary = document.querySelector("#sourceSummary");
+const invoiceSourceName = document.querySelector("#invoiceSourceName");
+const invoiceSourceMeta = document.querySelector("#invoiceSourceMeta");
+const mappingSourceName = document.querySelector("#mappingSourceName");
+const mappingSourceMeta = document.querySelector("#mappingSourceMeta");
+const notesSourceName = document.querySelector("#notesSourceName");
+const notesSourceMeta = document.querySelector("#notesSourceMeta");
+
+let currentConfig = null;
 
 const currency = new Intl.NumberFormat("sv-SE", {
   maximumFractionDigits: 0,
@@ -12,24 +26,43 @@ const currency = new Intl.NumberFormat("sv-SE", {
 fetch("/api/config")
   .then((response) => response.json())
   .then((config) => {
-    if (sourceStatus) {
-      const invoice = config.default_invoice_exists ? "invoice found" : "invoice missing";
-      const mapping = config.default_mapping_exists ? "mapping found" : "mapping missing";
-      const notes = config.meeting_notes_exists ? "meeting notes found" : "meeting notes missing";
-      sourceStatus.textContent = `${invoice}; ${mapping}; ${notes}`;
-    }
-    document.querySelector("#useDefaultInvoice").disabled = !config.default_invoice_exists;
-    document.querySelector("#useDefaultInvoice").checked = config.default_invoice_exists;
-    document.querySelector("#useDefaultMapping").disabled = !config.default_mapping_exists;
-    document.querySelector("#useDefaultMapping").checked = config.default_mapping_exists;
+    currentConfig = config;
+    useDefaultInvoice.disabled = !config.default_invoice_exists;
+    useDefaultInvoice.checked = config.default_invoice_exists;
+    useDefaultMapping.disabled = !config.default_mapping_exists;
+    useDefaultMapping.checked = config.default_mapping_exists;
+    renderSourceSummary(config);
+    renderSheetHint(config);
+    syncInputToggles();
   })
   .catch(() => {
-    sourceStatus.textContent = "Local source check failed";
+    sourceSummary.textContent = "Local source check failed";
   });
+
+invoiceInput.addEventListener("change", () => {
+  if (invoiceInput.files.length) {
+    useDefaultInvoice.checked = false;
+  }
+  syncInputToggles();
+});
+
+mappingInput.addEventListener("change", () => {
+  if (mappingInput.files.length) {
+    useDefaultMapping.checked = false;
+  }
+  syncInputToggles();
+});
+
+useDefaultInvoice.addEventListener("change", syncInputToggles);
+useDefaultMapping.addEventListener("change", syncInputToggles);
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
-  setStatus("Analyzing...", false);
+  const label =
+    sheetIndexInput.value === "0"
+      ? "Analyzing first worksheet..."
+      : `Analyzing worksheet ${sheetIndexInput.value}...`;
+  setStatus(label, false);
   downloadLink.classList.add("disabled");
   categoryDownloadLink.classList.add("disabled");
   results.classList.add("hidden");
@@ -44,8 +77,10 @@ form.addEventListener("submit", async (event) => {
       throw new Error(payload.error || "Analysis failed");
     }
     renderResults(payload);
+    const sheetName = payload.sheet_names?.[payload.sheet_index] || `worksheet ${payload.sheet_index}`;
+    const invoiceLabel = fileNameFromPath(payload.invoice_file);
     setStatus(
-      `Processed ${formatNumber(payload.processed_rows)} rows in ${payload.duration_seconds}s using ${formatNumber(payload.mapping_entries)} mapping entries.`,
+      `Processed ${formatNumber(payload.processed_rows)} rows from ${sheetName} in ${payload.duration_seconds}s using ${formatNumber(payload.mapping_entries)} mapping entries from ${invoiceLabel}.`,
       false
     );
   } catch (error) {
@@ -161,6 +196,52 @@ function counterToSeries(counter) {
   return Object.entries(counter).map(([label, value]) => ({ label, value }));
 }
 
+function renderSourceSummary(config) {
+  const invoiceReady = config.default_invoice_exists;
+  const mappingReady = config.default_mapping_exists;
+  const notesReady = config.meeting_notes_exists;
+  sourceSummary.textContent = `${invoiceReady ? "invoice ready" : "invoice missing"} · ${mappingReady ? "mapping ready" : "mapping missing"} · ${notesReady ? "notes ready" : "notes missing"}`;
+
+  invoiceSourceName.textContent = invoiceReady ? config.default_invoice_name : "Not detected";
+  invoiceSourceMeta.textContent = invoiceReady
+    ? `${formatBytes(config.default_invoice_size_bytes)} · ${formatSheetMeta(config.default_invoice_sheet_names)}`
+    : "Choose a local file or update config.local.json";
+
+  mappingSourceName.textContent = mappingReady ? config.default_mapping_name : "Not detected";
+  mappingSourceMeta.textContent = mappingReady
+    ? `${formatBytes(config.default_mapping_size_bytes)}`
+    : "Choose a local file or update config.local.json";
+
+  notesSourceName.textContent = notesReady ? config.meeting_notes_name : "Not detected";
+  notesSourceMeta.textContent = notesReady
+    ? "Meeting notes available"
+    : "Optional reference file";
+}
+
+function renderSheetHint(config) {
+  const names = config.default_invoice_sheet_names || [];
+  if (!names.length) {
+    sheetHint.textContent = "0 = first worksheet";
+    return;
+  }
+  sheetHint.textContent = names.map((name, index) => `${index}: ${name}`).join(" · ");
+}
+
+function syncInputToggles() {
+  const useConfiguredInvoice = useDefaultInvoice.checked;
+  const useConfiguredMapping = useDefaultMapping.checked;
+
+  invoiceInput.disabled = useConfiguredInvoice;
+  mappingInput.disabled = useConfiguredMapping;
+
+  if (useConfiguredInvoice && invoiceInput.value) {
+    invoiceInput.value = "";
+  }
+  if (useConfiguredMapping && mappingInput.value) {
+    mappingInput.value = "";
+  }
+}
+
 function setStatus(message, isError) {
   statusPanel.textContent = message;
   statusPanel.classList.remove("hidden", "error");
@@ -175,6 +256,37 @@ function formatMoney(value) {
 
 function formatNumber(value) {
   return currency.format(Number(value) || 0);
+}
+
+function formatBytes(value) {
+  const bytes = Number(value) || 0;
+  if (!bytes) {
+    return "0 B";
+  }
+  if (bytes >= 1024 * 1024 * 1024) {
+    return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+  }
+  if (bytes >= 1024 * 1024) {
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+  if (bytes >= 1024) {
+    return `${(bytes / 1024).toFixed(1)} KB`;
+  }
+  return `${bytes} B`;
+}
+
+function formatSheetMeta(sheetNames) {
+  const names = sheetNames || [];
+  if (!names.length) {
+    return "worksheet list unavailable";
+  }
+  return `${names.length} worksheet${names.length === 1 ? "" : "s"}`;
+}
+
+function fileNameFromPath(path) {
+  const value = String(path || "");
+  const parts = value.split(/[\\/]/);
+  return parts[parts.length - 1] || value;
 }
 
 function escapeHtml(value) {

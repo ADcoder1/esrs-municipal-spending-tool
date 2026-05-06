@@ -8,26 +8,57 @@
   </head>
   <body>
     <header class="app-header">
-      <div>
+      <div class="title-block">
         <h1>ESRS Municipal Spending Tool</h1>
+        <p>Primary local analysis workspace for municipal invoice and procurement datasets.</p>
       </div>
       <a class="ghost-button" href="/api/config" target="_blank" rel="noreferrer">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm9 4-2.1.5a7.8 7.8 0 0 1-.8 1.9l1.1 1.8-3 3-1.8-1.1c-.6.3-1.2.6-1.9.8L12 21H8l-.5-2.1a7.8 7.8 0 0 1-1.9-.8l-1.8 1.1-3-3 1.1-1.8a7.8 7.8 0 0 1-.8-1.9L-1 12l.5-4 2.1-.5c.2-.7.5-1.3.8-1.9L1.3 3.8l3-3 1.8 1.1c.6-.3 1.2-.6 1.9-.8L8 .1h4l.5 2.1c.7.2 1.3.5 1.9.8l1.8-1.1 3 3-1.1 1.8c.3.6.6 1.2.8 1.9L21 8v4Z"/></svg>
-        Config
+        Sources
       </a>
     </header>
 
     <main class="shell">
+      <section class="panel source-panel">
+        <div class="section-head">
+          <h2>Configured Sources</h2>
+          <span id="sourceSummary" class="section-meta">Checking local files...</span>
+        </div>
+        <div class="source-grid">
+          <div class="source-item">
+            <span class="source-label">Invoice dataset</span>
+            <strong id="invoiceSourceName">Not detected</strong>
+            <span id="invoiceSourceMeta" class="source-meta-line"></span>
+          </div>
+          <div class="source-item">
+            <span class="source-label">Validation mapping</span>
+            <strong id="mappingSourceName">Not detected</strong>
+            <span id="mappingSourceMeta" class="source-meta-line"></span>
+          </div>
+          <div class="source-item">
+            <span class="source-label">Reference notes</span>
+            <strong id="notesSourceName">Not detected</strong>
+            <span id="notesSourceMeta" class="source-meta-line"></span>
+          </div>
+        </div>
+      </section>
+
       <section class="panel controls-panel">
         <form id="analyzeForm">
+          <div class="section-head">
+            <h2>Run Analysis</h2>
+            <span class="section-meta">Recommended start: 200,000 rows</span>
+          </div>
           <div class="control-grid">
             <label class="file-control">
               <span>Invoice / procurement data</span>
               <input type="file" id="invoiceFile" name="invoice_file" accept=".csv,.xlsx" />
+              <small class="helper">Leave blank to use the configured local dataset.</small>
             </label>
             <label class="file-control">
               <span>ESRS category mapping</span>
               <input type="file" id="mappingFile" name="mapping_file" accept=".csv,.xlsx" />
+              <small class="helper">Leave blank to use the configured validation mapping.</small>
             </label>
             <label class="check-control">
               <input type="checkbox" id="useDefaultInvoice" name="use_default_invoice" checked />
@@ -35,35 +66,37 @@
             </label>
             <label class="check-control">
               <input type="checkbox" id="useDefaultMapping" name="use_default_mapping" checked />
-              <span>Use detected validation mapping</span>
+              <span>Use configured mapping file</span>
             </label>
             <label>
               <span>Rows to scan</span>
               <select id="maxRows" name="max_rows">
                 <option value="1000">1,000</option>
-                <option value="10000" selected>10,000</option>
+                <option value="10000">10,000</option>
                 <option value="50000">50,000</option>
-                <option value="200000">200,000</option>
-                <option value="1048565">All Excel rows</option>
+                <option value="200000" selected>200,000</option>
+                <option value="1048565">All rows</option>
               </select>
+              <small class="helper">Use a partial pass first, then run all rows once the mapping looks right.</small>
             </label>
             <label>
               <span>Worksheet</span>
               <input id="sheetIndex" name="sheet_index" type="number" min="0" value="0" />
+              <small id="sheetHint" class="helper">0 = first worksheet</small>
             </label>
           </div>
           <div class="actions">
             <button class="primary-button" type="submit">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v3H4V4Zm0 6h10v3H4v-3Zm0 6h16v3H4v-3Zm13-6 4 2.5-4 2.5v-5Z"/></svg>
-              Analyze
+              Analyze Dataset
             </button>
             <a id="downloadLink" class="secondary-button disabled" href="#">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 4h2v8l3-3 1.4 1.4L12 15.8l-5.4-5.4L8 9l3 3V4ZM5 18h14v2H5v-2Z"/></svg>
-              Rows CSV
+              Classified Rows CSV
             </a>
             <a id="categoryDownloadLink" class="secondary-button disabled" href="#">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v2H4V5Zm0 4h16v2H4V9Zm0 4h10v2H4v-2Zm0 4h10v2H4v-2Zm13-4 4 3-4 3v-2h-2v-2h2v-2Z"/></svg>
-              Categories CSV
+              Validation Categories CSV
             </a>
           </div>
         </form>

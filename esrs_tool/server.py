@@ -19,6 +19,7 @@ from .config import (
     PROJECT_ROOT,
     STATIC_DIR,
 )
+from .tabular import sheet_names
 
 
 HOST = "127.0.0.1"
@@ -38,16 +39,24 @@ class EsrsHandler(BaseHTTPRequestHandler):
                 {
                     "default_invoice_path": str(DEFAULT_INVOICE_PATH),
                     "default_invoice_exists": DEFAULT_INVOICE_PATH.exists(),
+                    "default_invoice_name": DEFAULT_INVOICE_PATH.name,
+                    "default_invoice_size_bytes": _safe_size(DEFAULT_INVOICE_PATH),
+                    "default_invoice_sheet_names": _safe_sheet_names(DEFAULT_INVOICE_PATH),
                     "default_mapping_path": str(DEFAULT_MAPPING_PATH),
                     "default_mapping_exists": DEFAULT_MAPPING_PATH.exists(),
+                    "default_mapping_name": DEFAULT_MAPPING_PATH.name,
+                    "default_mapping_size_bytes": _safe_size(DEFAULT_MAPPING_PATH),
                     "data_dir": str(DEFAULT_DATA_DIR),
                     "data_dir_exists": DEFAULT_DATA_DIR.exists(),
                     "meeting_notes_path": str(DEFAULT_MEETING_NOTES_PATH),
                     "meeting_notes_exists": DEFAULT_MEETING_NOTES_PATH.exists(),
+                    "meeting_notes_name": DEFAULT_MEETING_NOTES_PATH.name,
                     "gap_report_path": str(DEFAULT_GAP_REPORT_PATH),
                     "gap_report_exists": DEFAULT_GAP_REPORT_PATH.exists(),
+                    "gap_report_name": DEFAULT_GAP_REPORT_PATH.name,
                     "code_plan_path": str(DEFAULT_CODE_PLAN_PATH),
                     "code_plan_exists": DEFAULT_CODE_PLAN_PATH.exists(),
+                    "code_plan_name": DEFAULT_CODE_PLAN_PATH.name,
                     "project_root": str(PROJECT_ROOT),
                 }
             )
@@ -177,3 +186,17 @@ def _form_value(form: cgi.FieldStorage, name: str, default: str = "") -> str:
 
 def _truthy(value: str) -> bool:
     return str(value).strip().casefold() in {"1", "true", "yes", "on"}
+
+
+def _safe_sheet_names(path: Path):
+    try:
+        return sheet_names(path)
+    except Exception:
+        return []
+
+
+def _safe_size(path: Path) -> int:
+    try:
+        return path.stat().st_size
+    except Exception:
+        return 0

@@ -49,6 +49,8 @@ const KNOWN_HEADER_KEYS = new Set([
   "forvaltning",
 ]);
 
+const MAX_BROWSER_XLSX_BYTES = 25 * 1024 * 1024;
+
 export {
   ESRS_LABELS,
   CATEGORY_COLUMNS,
@@ -66,6 +68,12 @@ export async function readTableFile(file) {
     return rowsToObjects(parseCsvMatrix(await file.text()));
   }
   if (name.endsWith(".xlsx")) {
+    if ((file?.size || 0) > MAX_BROWSER_XLSX_BYTES) {
+      const sizeMb = ((file.size || 0) / (1024 * 1024)).toFixed(1);
+      throw new Error(
+        `This Excel file is ${sizeMb} MB. The browser demo is for smaller files only. Use the local Python app for large municipal workbooks.`
+      );
+    }
     return rowsToObjects(await parseXlsxMatrix(await file.arrayBuffer()));
   }
   throw new Error("Unsupported file type. Use CSV or XLSX.");
@@ -180,63 +188,84 @@ async function sheetPaths(entries) {
       .map((name) => ({ name: name.split("/").pop().replace(".xml", ""), path: name }));
   }
 
-  const workbook = parseXml(await entryText(entries.get("xl/workbook.xml")));
-  const rels = parseXml(await entryText(entries.get("xl/_rels/workbook.xml.rels")));
+  const workbook = await entryText(entries.get("xl/workbook.xml"));
+  const rels = await entryText(entries.get("xl/_rels/workbook.xml.rels"));
   const relationships = new Map();
 
-  elementsByLocalName(rels, "Relationship").forEach((rel) => {
-    const relId = rel.getAttribute("Id");
-    const target = rel.getAttribute("Target") || "";
+  for (const rel of matchXmlElements(rels, "Relationship")) {
+    const relId = attrValue(rel.attrs, "Id");
+    const target = attrValue(rel.attrs, "Target") || "";
     if (!relId) return;
     relationships.set(relId, target.startsWith("/") ? target.slice(1) : `xl/${target.replace(/^\/+/, "")}`);
-  });
+  }
 
-  return elementsByLocalName(workbook, "sheet")
+  return matchXmlElements(workbook, "sheet")
     .map((sheet) => {
-      const relId =
-        sheet.getAttribute("r:id") ||
-        sheet.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships", "id");
+      const relId = attrValue(sheet.attrs, "r:id") || attrValue(sheet.attrs, "id");
       const path = relationships.get(relId);
       if (!path) return null;
-      return { name: sheet.getAttribute("name") || "Sheet", path };
+      return { name: attrValue(sheet.attrs, "name") || "Sheet", path };
     })
     .filter(Boolean);
 }
 
 function parseSharedStrings(xmlText) {
-  const doc = parseXml(xmlText);
-  return elementsByLocalName(doc, "si").map((item) =>
-    elementsByLocalName(item, "t")
-      .map((node) => node.textContent || "")
-      .join("")
-  );
+  const strings = [];
+  const siPattern = /<si\b[^>]*>([\s\S]*?)<\/si>/g;
+  let siMatch;
+  while ((siMatch = siPattern.exec(xmlText))) {
+    const parts = [];
+    const tPattern = /<t\b[^>]*>([\s\S]*?)<\/t>/g;
+    let tMatch;
+    while ((tMatch = tPattern.exec(siMatch[1]))) {
+      parts.push(decodeXmlText(tMatch[1]));
+    }
+    strings.push(parts.join(""));
+  }
+  return strings;
 }
 
 function parseSheetRows(xmlText, sharedStrings) {
-  const doc = parseXml(xmlText);
-  return elementsByLocalName(doc, "row").map((row) => parseSheetRow(row, sharedStrings));
+  const rows = [];
+  const rowPattern = /<row\b[^>]*>([\s\S]*?)<\/row>/g;
+  let rowMatch;
+  while ((rowMatch = rowPattern.exec(xmlText))) {
+    rows.push(parseSheetRow(rowMatch[1], sharedStrings));
+  }
+  return rows;
 }
 
 function parseSheetRow(row, sharedStrings) {
   const values = [];
-  elementsByLocalName(row, "c").forEach((cell) => {
-    const ref = cell.getAttribute("r") || "";
+  const cellPattern = /<c\b([^>]*)>([\s\S]*?)<\/c>|<c\b([^>]*)\/>/g;
+  let cellMatch;
+  while ((cellMatch = cellPattern.exec(row))) {
+    const attrs = cellMatch[1] || cellMatch[3] || "";
+    const inner = cellMatch[2] || "";
+    const ref = attrValue(attrs, "r") || "";
     const columnIndex = columnIndexFromRef(ref);
     while (values.length <= columnIndex) {
       values.push("");
     }
-    values[columnIndex] = parseSheetCell(cell, sharedStrings);
-  });
+    values[columnIndex] = parseSheetCell(attrs, inner, sharedStrings);
+  }
   return values;
 }
 
-function parseSheetCell(cell, sharedStrings) {
-  const cellType = cell.getAttribute("t");
-  const rawValue = elementsByLocalName(cell, "v")[0]?.textContent || "";
-  const inlineValue = elementsByLocalName(cell, "is")
-    .flatMap((node) => elementsByLocalName(node, "t"))
-    .map((node) => node.textContent || "")
-    .join("");
+function parseSheetCell(attrs, inner, sharedStrings) {
+  const cellType = attrValue(attrs, "t");
+  const rawValue = inner.match(/<v\b[^>]*>([\s\S]*?)<\/v>/)?.[1] || "";
+  let inlineValue = "";
+  const inlineMatch = inner.match(/<is\b[^>]*>([\s\S]*?)<\/is>/);
+  if (inlineMatch) {
+    const tPattern = /<t\b[^>]*>([\s\S]*?)<\/t>/g;
+    let tMatch;
+    const parts = [];
+    while ((tMatch = tPattern.exec(inlineMatch[1]))) {
+      parts.push(decodeXmlText(tMatch[1]));
+    }
+    inlineValue = parts.join("");
+  }
 
   if (cellType === "s") {
     return sharedStrings[Number.parseInt(rawValue, 10)] || "";
@@ -250,12 +279,39 @@ function parseSheetCell(cell, sharedStrings) {
   return rawValue || inlineValue;
 }
 
-function parseXml(text) {
-  return new DOMParser().parseFromString(text, "application/xml");
+function matchXmlElements(xmlText, tagName) {
+  const escapedTag = tagName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const pattern = new RegExp(
+    `<${escapedTag}\\b([^>]*)>([\\s\\S]*?)<\\/${escapedTag}>|<${escapedTag}\\b([^>]*)\\/>`,
+    "g"
+  );
+  const matches = [];
+  let match;
+  while ((match = pattern.exec(xmlText))) {
+    matches.push({
+      attrs: match[1] || match[3] || "",
+      inner: match[2] || "",
+    });
+  }
+  return matches;
 }
 
-function elementsByLocalName(root, name) {
-  return Array.from(root.getElementsByTagName("*")).filter((node) => node.localName === name);
+function attrValue(attrs, name) {
+  const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const pattern = new RegExp(`(?:^|\\s)${escapedName}="([^"]*)"`);
+  const match = pattern.exec(attrs);
+  return match ? decodeXmlText(match[1]) : "";
+}
+
+function decodeXmlText(text) {
+  return String(text || "")
+    .replace(/&#(\d+);/g, (_, value) => String.fromCodePoint(Number.parseInt(value, 10)))
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, value) => String.fromCodePoint(Number.parseInt(value, 16)))
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&amp;/g, "&");
 }
 
 async function entryText(entry) {
