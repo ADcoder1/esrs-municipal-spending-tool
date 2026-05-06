@@ -10,6 +10,11 @@ authors = [
 ]
 dependencies = []
 
+[project.optional-dependencies]
+build = [
+  "pyinstaller>=6.0",
+]
+
 [project.urls]
 Homepage = "https://github.com/ADcoder1/esrs-municipal-spending-tool"
 Documentation = "https://github.com/ADcoder1/esrs-municipal-spending-tool#readme"

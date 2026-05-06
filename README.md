@@ -8,7 +8,16 @@ private.
 
 ## Main Tool
 
-The main product in this repository is the local browser app:
+The main product in this repository is the local analysis app. It can run in
+two forms:
+
+- directly from source as a local browser app
+- as a packaged desktop app for macOS or Windows
+
+When the desktop app is built, the user double-clicks an app bundle or `.exe`
+instead of running Python manually.
+
+The source-run local app is:
 
 ```text
 http://127.0.0.1:8765
@@ -17,6 +26,32 @@ http://127.0.0.1:8765
 It uses a browser interface, but runs classification through the local Python
 backend so it can handle large municipal XLSX workbooks, private files, and
 configured reference materials.
+
+## Desktop App Builds
+
+To build a standalone desktop launcher locally:
+
+```bash
+python3 -m pip install pyinstaller
+python3 scripts/build_desktop_app.py
+```
+
+That produces a packaged desktop app in:
+
+```text
+dist/desktop/
+```
+
+Notes:
+
+- macOS builds must be created on macOS
+- Windows builds must be created on Windows
+- the repository includes a GitHub Actions workflow at
+  `.github/workflows/build-desktop.yml` that builds both automatically on tag
+  pushes such as `v0.2.0`
+
+The desktop app still opens the main analysis interface in the user's browser,
+but the server, launcher, and configuration live inside a native app bundle.
 
 ## Public Demo
 
@@ -141,6 +176,7 @@ The collaborator's data stays on their own machine.
 ## Repository Contents
 
 - `app.py`: local app entry point
+- `desktop_launcher.py`: native desktop launcher for packaged app builds
 - `launch_local_tool.py`: opens the main local app in a browser
 - `setup_local_tool.py`: writes a local config through a setup flow
 - `esrs_tool/`: Python backend and XLSX/CSV parser

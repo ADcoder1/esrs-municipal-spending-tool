@@ -3,26 +3,18 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import Dict
 
+from esrs_tool import config
 
-PROJECT_ROOT = Path(__file__).resolve().parent
-CONFIG_PATH = PROJECT_ROOT / "config.local.json"
+
+PROJECT_ROOT = config.PROJECT_ROOT
+CONFIG_PATH = config.LOCAL_CONFIG_PATH
 
 
 def _load_existing_config() -> Dict[str, str]:
-    if not CONFIG_PATH.exists():
-        return {}
-    try:
-        with CONFIG_PATH.open("r", encoding="utf-8") as handle:
-            data = json.load(handle)
-    except Exception:
-        return {}
-    if not isinstance(data, dict):
-        return {}
-    return {str(key): str(value) for key, value in data.items() if value}
+    return config.load_local_config(CONFIG_PATH)
 
 
 def _ask_yes_no(prompt: str, default: bool = True) -> bool:
@@ -89,15 +81,15 @@ def _initial_dir(current: str) -> str:
             return str(path)
         if path.parent.exists():
             return str(path.parent)
-    return str(PROJECT_ROOT)
+    return str(Path.home())
 
 
 def _print_value(label: str, value: str) -> None:
     print(f"{label}: {value if value else 'Sample/default behavior'}")
 
 
-def main() -> None:
-    config = _load_existing_config()
+def run_setup_flow(launch_after_prompt: bool = True) -> Dict[str, str]:
+    local_config = _load_existing_config()
     root = _picker_root()
 
     print("\nESRS Municipal Spending Tool setup\n")
@@ -112,29 +104,29 @@ def main() -> None:
     ]
 
     print("1. Invoice or procurement dataset")
-    _print_value("Current", config.get("invoice_path", ""))
-    config["invoice_path"] = _choose_file(
+    _print_value("Current", local_config.get("invoice_path", ""))
+    local_config["invoice_path"] = _choose_file(
         root,
         "Choose the invoice or procurement file",
-        config.get("invoice_path", ""),
+        local_config.get("invoice_path", ""),
         invoice_types,
     )
 
     print("\n2. ESRS category mapping file")
-    _print_value("Current", config.get("mapping_path", ""))
-    config["mapping_path"] = _choose_file(
+    _print_value("Current", local_config.get("mapping_path", ""))
+    local_config["mapping_path"] = _choose_file(
         root,
         "Choose the reviewed mapping file",
-        config.get("mapping_path", ""),
+        local_config.get("mapping_path", ""),
         invoice_types,
     )
 
-    if _ask_yes_no("\n3. Do you want to choose a data folder now?", default=bool(config.get("data_dir"))):
-        _print_value("Current", config.get("data_dir", ""))
-        config["data_dir"] = _choose_directory(
+    if _ask_yes_no("\n3. Do you want to choose a data folder now?", default=bool(local_config.get("data_dir"))):
+        _print_value("Current", local_config.get("data_dir", ""))
+        local_config["data_dir"] = _choose_directory(
             root,
             "Choose the local data folder",
-            config.get("data_dir", ""),
+            local_config.get("data_dir", ""),
         )
 
     optional_files = [
@@ -144,12 +136,12 @@ def main() -> None:
     ]
 
     for key, prompt, title in optional_files:
-        if _ask_yes_no(f"\n{prompt}", default=bool(config.get(key))):
-            _print_value("Current", config.get(key, ""))
-            config[key] = _choose_file(
+        if _ask_yes_no(f"\n{prompt}", default=bool(local_config.get(key))):
+            _print_value("Current", local_config.get(key, ""))
+            local_config[key] = _choose_file(
                 root,
                 title,
-                config.get(key, ""),
+                local_config.get(key, ""),
                 [("All files", "*.*")],
             )
 
@@ -159,12 +151,10 @@ def main() -> None:
         except Exception:
             pass
 
-    cleaned = {key: value for key, value in config.items() if str(value).strip()}
-    with CONFIG_PATH.open("w", encoding="utf-8") as handle:
-        json.dump(cleaned, handle, indent=2, ensure_ascii=False)
-        handle.write("\n")
+    cleaned = {key: value for key, value in local_config.items() if str(value).strip()}
+    config_path = config_save(cleaned)
 
-    print(f"\nSaved local settings to {CONFIG_PATH}")
+    print(f"\nSaved local settings to {config_path}")
     for label, key in (
         ("Invoice", "invoice_path"),
         ("Mapping", "mapping_path"),
@@ -175,11 +165,20 @@ def main() -> None:
     ):
         _print_value(label, cleaned.get(key, ""))
 
-    if _ask_yes_no("\nOpen the tool now?", default=True):
+    if launch_after_prompt and _ask_yes_no("\nOpen the tool now?", default=True):
         from launch_local_tool import main as launch_main
 
         print()
         launch_main()
+    return cleaned
+
+
+def config_save(data: Dict[str, str]) -> Path:
+    return config.save_local_config(data, CONFIG_PATH)
+
+
+def main() -> None:
+    run_setup_flow(launch_after_prompt=True)
 
 
 if __name__ == "__main__":

@@ -9,16 +9,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 from .analyzer import analyze, export_path
-from .config import (
-    DEFAULT_CODE_PLAN_PATH,
-    DEFAULT_GAP_REPORT_PATH,
-    DEFAULT_INVOICE_PATH,
-    DEFAULT_MAPPING_PATH,
-    DEFAULT_MEETING_NOTES_PATH,
-    DEFAULT_DATA_DIR,
-    PROJECT_ROOT,
-    STATIC_DIR,
-)
+from . import config
 from .tabular import sheet_names
 
 
@@ -32,32 +23,37 @@ class EsrsHandler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
         if parsed.path == "/":
-            self._send_file(STATIC_DIR / "index.html")
+            self._send_file(config.STATIC_DIR / "index.html")
             return
         if parsed.path == "/api/config":
+            defaults = config.current_defaults()
             self._send_json(
                 {
-                    "default_invoice_path": str(DEFAULT_INVOICE_PATH),
-                    "default_invoice_exists": DEFAULT_INVOICE_PATH.exists(),
-                    "default_invoice_name": DEFAULT_INVOICE_PATH.name,
-                    "default_invoice_size_bytes": _safe_size(DEFAULT_INVOICE_PATH),
-                    "default_invoice_sheet_names": _safe_sheet_names(DEFAULT_INVOICE_PATH),
-                    "default_mapping_path": str(DEFAULT_MAPPING_PATH),
-                    "default_mapping_exists": DEFAULT_MAPPING_PATH.exists(),
-                    "default_mapping_name": DEFAULT_MAPPING_PATH.name,
-                    "default_mapping_size_bytes": _safe_size(DEFAULT_MAPPING_PATH),
-                    "data_dir": str(DEFAULT_DATA_DIR),
-                    "data_dir_exists": DEFAULT_DATA_DIR.exists(),
-                    "meeting_notes_path": str(DEFAULT_MEETING_NOTES_PATH),
-                    "meeting_notes_exists": DEFAULT_MEETING_NOTES_PATH.exists(),
-                    "meeting_notes_name": DEFAULT_MEETING_NOTES_PATH.name,
-                    "gap_report_path": str(DEFAULT_GAP_REPORT_PATH),
-                    "gap_report_exists": DEFAULT_GAP_REPORT_PATH.exists(),
-                    "gap_report_name": DEFAULT_GAP_REPORT_PATH.name,
-                    "code_plan_path": str(DEFAULT_CODE_PLAN_PATH),
-                    "code_plan_exists": DEFAULT_CODE_PLAN_PATH.exists(),
-                    "code_plan_name": DEFAULT_CODE_PLAN_PATH.name,
-                    "project_root": str(PROJECT_ROOT),
+                    "default_invoice_path": str(defaults["invoice_path"]),
+                    "default_invoice_exists": defaults["invoice_path"].exists(),
+                    "default_invoice_name": defaults["invoice_path"].name,
+                    "default_invoice_size_bytes": _safe_size(defaults["invoice_path"]),
+                    "default_invoice_sheet_names": _safe_sheet_names(defaults["invoice_path"]),
+                    "default_mapping_path": str(defaults["mapping_path"]),
+                    "default_mapping_exists": defaults["mapping_path"].exists(),
+                    "default_mapping_name": defaults["mapping_path"].name,
+                    "default_mapping_size_bytes": _safe_size(defaults["mapping_path"]),
+                    "data_dir": str(defaults["data_dir"]),
+                    "data_dir_exists": defaults["data_dir"].exists(),
+                    "meeting_notes_path": str(defaults["meeting_notes_path"]),
+                    "meeting_notes_exists": defaults["meeting_notes_path"].exists(),
+                    "meeting_notes_name": defaults["meeting_notes_path"].name,
+                    "gap_report_path": str(defaults["gap_report_path"]),
+                    "gap_report_exists": defaults["gap_report_path"].exists(),
+                    "gap_report_name": defaults["gap_report_path"].name,
+                    "code_plan_path": str(defaults["code_plan_path"]),
+                    "code_plan_exists": defaults["code_plan_path"].exists(),
+                    "code_plan_name": defaults["code_plan_path"].name,
+                    "project_root": str(config.PROJECT_ROOT),
+                    "resource_root": str(config.RESOURCE_ROOT),
+                    "data_root": str(config.DATA_ROOT),
+                    "local_config_path": str(config.LOCAL_CONFIG_PATH),
+                    "is_frozen": config.is_frozen(),
                 }
             )
             return
@@ -68,7 +64,7 @@ class EsrsHandler(BaseHTTPRequestHandler):
             except Exception as exc:
                 self._send_error(HTTPStatus.NOT_FOUND, str(exc))
             return
-        static_path = STATIC_DIR / parsed.path.lstrip("/")
+        static_path = config.STATIC_DIR / parsed.path.lstrip("/")
         if static_path.exists() and static_path.is_file():
             self._send_file(static_path)
             return
@@ -81,6 +77,7 @@ class EsrsHandler(BaseHTTPRequestHandler):
             return
 
         try:
+            defaults = config.current_defaults()
             form = cgi.FieldStorage(
                 fp=self.rfile,
                 headers=self.headers,
@@ -96,12 +93,12 @@ class EsrsHandler(BaseHTTPRequestHandler):
 
                 if invoice_path is None:
                     if _truthy(_form_value(form, "use_default_invoice")):
-                        invoice_path = DEFAULT_INVOICE_PATH
+                        invoice_path = defaults["invoice_path"]
                     else:
                         raise ValueError("Choose an invoice/procurement CSV or XLSX file.")
                 if mapping_path is None:
                     if _truthy(_form_value(form, "use_default_mapping")):
-                        mapping_path = DEFAULT_MAPPING_PATH
+                        mapping_path = defaults["mapping_path"]
                     else:
                         raise ValueError("Choose an ESRS mapping CSV or XLSX file.")
 
@@ -165,14 +162,27 @@ class EsrsHandler(BaseHTTPRequestHandler):
 
 
 def run(host: str = HOST, port: int = PORT) -> None:
-    server = ThreadingHTTPServer((host, port), EsrsHandler)
+    server = create_server(host=host, port=port)
     print(f"ESRS tool running at http://{host}:{port}")
     try:
-        server.serve_forever()
+        serve(server)
     except KeyboardInterrupt:
         print("\nStopping ESRS tool.")
     finally:
-        server.server_close()
+        stop_server(server)
+
+
+def create_server(host: str = HOST, port: int = PORT) -> ThreadingHTTPServer:
+    return ThreadingHTTPServer((host, port), EsrsHandler)
+
+
+def serve(server: ThreadingHTTPServer) -> None:
+    server.serve_forever()
+
+
+def stop_server(server: ThreadingHTTPServer) -> None:
+    server.shutdown()
+    server.server_close()
 
 
 def _form_value(form: cgi.FieldStorage, name: str, default: str = "") -> str:

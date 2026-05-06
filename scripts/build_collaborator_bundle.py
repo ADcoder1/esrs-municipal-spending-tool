@@ -16,6 +16,7 @@ ZIP_PATH = DIST_DIR / f"{BUNDLE_NAME}.zip"
 
 INCLUDE_PATHS = [
     "app.py",
+    "desktop_launcher.py",
     "launch_local_tool.py",
     "setup_local_tool.py",
     "README.md",
