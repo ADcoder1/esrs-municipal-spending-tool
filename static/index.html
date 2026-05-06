@@ -8,35 +8,120 @@
   </head>
   <body>
     <header class="app-header">
-      <div class="title-block">
-        <h1>ESRS Municipal Spending Tool</h1>
-        <p>Primary local analysis workspace for municipal invoice and procurement datasets.</p>
+      <div class="hero-topline">
+        <span>Supported through AT LAST</span>
+        <span>Developed at SEI</span>
+        <span>Runs locally on this computer</span>
       </div>
-      <a class="ghost-button" href="/api/config" target="_blank" rel="noreferrer">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm9 4-2.1.5a7.8 7.8 0 0 1-.8 1.9l1.1 1.8-3 3-1.8-1.1c-.6.3-1.2.6-1.9.8L12 21H8l-.5-2.1a7.8 7.8 0 0 1-1.9-.8l-1.8 1.1-3-3 1.1-1.8a7.8 7.8 0 0 1-.8-1.9L-1 12l.5-4 2.1-.5c.2-.7.5-1.3.8-1.9L1.3 3.8l3-3 1.8 1.1c.6-.3 1.2-.6 1.9-.8L8 .1h4l.5 2.1c.7.2 1.3.5 1.9.8l1.8-1.1 3 3-1.1 1.8c.3.6.6 1.2.8 1.9L21 8v4Z"/></svg>
-        Sources
-      </a>
+      <div class="hero-grid">
+        <div class="title-block">
+          <div class="header-pill-row">
+            <span class="header-pill">For city review meetings</span>
+            <span class="header-pill">Category validation</span>
+            <span class="header-pill">No cloud upload</span>
+          </div>
+          <h1>ESRS Municipal Spending Tool</h1>
+          <p>Review municipal spending files against ESRS environmental themes, focus on uncertain categories, and prepare a clear follow-up file for colleagues.</p>
+        </div>
+        <div class="hero-side">
+          <div class="hero-brand-row" aria-label="Project partners">
+            <div class="hero-brand hero-brand-atlast">
+              <img src="/assets/at-last-logo-icon.png" alt="AT LAST logo" class="brand-icon" />
+              <div>
+                <span>AT LAST</span>
+                <small>Project support</small>
+              </div>
+            </div>
+            <div class="hero-brand hero-brand-sei">
+              <img src="/assets/sei-logo.png" alt="SEI logo" class="sei-logo" />
+              <small>Research partner</small>
+            </div>
+          </div>
+          <p class="hero-note">This workspace is designed for practical review rather than formal reporting. Your files stay on this machine unless you choose to export and share results.</p>
+          <a class="ghost-button" href="/api/config" target="_blank" rel="noreferrer">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm9 4-2.1.5a7.8 7.8 0 0 1-.8 1.9l1.1 1.8-3 3-1.8-1.1c-.6.3-1.2.6-1.9.8L12 21H8l-.5-2.1a7.8 7.8 0 0 1-1.9-.8l-1.8 1.1-3-3 1.1-1.8a7.8 7.8 0 0 1-.8-1.9L-1 12l.5-4 2.1-.5c.2-.7.5-1.3.8-1.9L1.3 3.8l3-3 1.8 1.1c.6-.3 1.2-.6 1.9-.8L8 .1h4l.5 2.1c.7.2 1.3.5 1.9.8l1.8-1.1 3 3-1.1 1.8c.3.6.6 1.2.8 1.9L21 8v4Z"/></svg>
+            View technical file details
+          </a>
+        </div>
+      </div>
     </header>
 
     <main class="shell">
+      <section class="context-band">
+        <div class="context-intro">
+          <span class="panel-kicker">How this tool is used</span>
+          <h2>Built for collaborative category review</h2>
+          <p>
+            Use this workspace to check how spending categories are being mapped,
+            spot unclear classifications, and prepare a review package that can
+            be discussed with city colleagues.
+          </p>
+        </div>
+        <div class="context-points">
+          <div class="context-point">
+            <strong>For review discussions</strong>
+            <p>Focus on uncertain mappings, high-value categories, and rows that may need a stricter “None” interpretation.</p>
+          </div>
+          <div class="context-point">
+            <strong>Not a disclosure engine</strong>
+            <p>This supports internal assessment and follow-up. It does not produce formal ESRS disclosures or environmental performance calculations.</p>
+          </div>
+          <div class="context-point">
+            <strong>Local by default</strong>
+            <p>Files are processed on this computer so municipal data can stay in its original working environment.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="workflow-panel">
+        <div class="workflow-step">
+          <span class="workflow-number">1</span>
+          <div>
+            <strong>Check the current files</strong>
+            <p>Confirm which spending workbook and category matching file are currently selected.</p>
+          </div>
+        </div>
+        <div class="workflow-step">
+          <span class="workflow-number">2</span>
+          <div>
+            <strong>Run a first review pass</strong>
+            <p>Start with a smaller row count so you can spot mapping issues quickly.</p>
+          </div>
+        </div>
+        <div class="workflow-step">
+          <span class="workflow-number">3</span>
+          <div>
+            <strong>Review categories and flagged rows</strong>
+            <p>Use the results tabs to focus on uncertain classifications and discussion points.</p>
+          </div>
+        </div>
+        <div class="workflow-step">
+          <span class="workflow-number">4</span>
+          <div>
+            <strong>Export files for follow-up</strong>
+            <p>Download the classified rows and category review file for city feedback.</p>
+          </div>
+        </div>
+      </section>
+
       <section class="panel source-panel">
         <div class="section-head">
-          <h2>Configured Sources</h2>
+          <h2>Files Ready For Review</h2>
           <span id="sourceSummary" class="section-meta">Checking local files...</span>
         </div>
         <div class="source-grid">
           <div class="source-item">
-            <span class="source-label">Invoice dataset</span>
+            <span class="source-label">Spending workbook</span>
             <strong id="invoiceSourceName">Not detected</strong>
             <span id="invoiceSourceMeta" class="source-meta-line"></span>
           </div>
           <div class="source-item">
-            <span class="source-label">Validation mapping</span>
+            <span class="source-label">Category matching file</span>
             <strong id="mappingSourceName">Not detected</strong>
             <span id="mappingSourceMeta" class="source-meta-line"></span>
           </div>
           <div class="source-item">
-            <span class="source-label">Reference notes</span>
+            <span class="source-label">Meeting notes</span>
             <strong id="notesSourceName">Not detected</strong>
             <span id="notesSourceMeta" class="source-meta-line"></span>
           </div>
@@ -46,30 +131,30 @@
       <section class="panel controls-panel">
         <form id="analyzeForm">
           <div class="section-head">
-            <h2>Run Analysis</h2>
-            <span class="section-meta">Recommended start: 200,000 rows</span>
+            <h2>Start A Review Pass</h2>
+            <span class="section-meta">Recommended first pass: 200,000 rows</span>
           </div>
           <div class="control-grid">
             <label class="file-control">
-              <span>Invoice / procurement data</span>
+              <span>Use a different spending workbook</span>
               <input type="file" id="invoiceFile" name="invoice_file" accept=".csv,.xlsx" />
-              <small class="helper">Leave blank to use the configured local dataset.</small>
+              <small class="helper">Leave this blank if you want to analyse the spending file shown above.</small>
             </label>
             <label class="file-control">
-              <span>ESRS category mapping</span>
+              <span>Use a different category matching file</span>
               <input type="file" id="mappingFile" name="mapping_file" accept=".csv,.xlsx" />
-              <small class="helper">Leave blank to use the configured validation mapping.</small>
+              <small class="helper">Leave this blank if you want to use the category matching file shown above.</small>
             </label>
             <label class="check-control">
               <input type="checkbox" id="useDefaultInvoice" name="use_default_invoice" checked />
-              <span>Use configured invoice file</span>
+              <span>Use the current spending workbook shown above</span>
             </label>
             <label class="check-control">
               <input type="checkbox" id="useDefaultMapping" name="use_default_mapping" checked />
-              <span>Use configured mapping file</span>
+              <span>Use the current category matching file shown above</span>
             </label>
             <label>
-              <span>Rows to scan</span>
+              <span>Number of rows to check</span>
               <select id="maxRows" name="max_rows">
                 <option value="1000">1,000</option>
                 <option value="10000">10,000</option>
@@ -77,26 +162,26 @@
                 <option value="200000" selected>200,000</option>
                 <option value="1048565">All rows</option>
               </select>
-              <small class="helper">Use a partial pass first, then run all rows once the mapping looks right.</small>
+              <small class="helper">A smaller first pass helps you check whether the category matching file is working before running the full workbook.</small>
             </label>
             <label>
-              <span>Worksheet</span>
+              <span>Which worksheet to use</span>
               <input id="sheetIndex" name="sheet_index" type="number" min="0" value="0" />
-              <small id="sheetHint" class="helper">0 = first worksheet</small>
+              <small id="sheetHint" class="helper">Worksheet 0 is usually the main spending sheet.</small>
             </label>
           </div>
           <div class="actions">
             <button class="primary-button" type="submit">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v3H4V4Zm0 6h10v3H4v-3Zm0 6h16v3H4v-3Zm13-6 4 2.5-4 2.5v-5Z"/></svg>
-              Analyze Dataset
+              Run Review
             </button>
             <a id="downloadLink" class="secondary-button disabled" href="#">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 4h2v8l3-3 1.4 1.4L12 15.8l-5.4-5.4L8 9l3 3V4ZM5 18h14v2H5v-2Z"/></svg>
-              Classified Rows CSV
+              Download Classified Rows
             </a>
             <a id="categoryDownloadLink" class="secondary-button disabled" href="#">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v2H4V5Zm0 4h16v2H4V9Zm0 4h10v2H4v-2Zm0 4h10v2H4v-2Zm13-4 4 3-4 3v-2h-2v-2h2v-2Z"/></svg>
-              Validation Categories CSV
+              Download Category Review File
             </a>
           </div>
         </form>
@@ -106,18 +191,18 @@
 
       <section id="results" class="hidden">
         <div class="metric-grid">
-          <div class="metric"><span>Rows</span><strong id="rowsMetric">0</strong></div>
-          <div class="metric"><span>Total amount</span><strong id="amountMetric">0</strong></div>
-          <div class="metric"><span>Classified</span><strong id="classifiedMetric">0%</strong></div>
-          <div class="metric"><span>Needs review</span><strong id="reviewMetric">0</strong></div>
+          <div class="metric"><span>Rows analysed</span><strong id="rowsMetric">0</strong></div>
+          <div class="metric"><span>Spend in this run</span><strong id="amountMetric">0</strong></div>
+          <div class="metric"><span>Mapped to E1-E5</span><strong id="classifiedMetric">0%</strong></div>
+          <div class="metric"><span>Rows needing review</span><strong id="reviewMetric">0</strong></div>
         </div>
 
         <nav class="tabs" aria-label="Results tabs">
           <button class="tab active" data-tab="overview">Overview</button>
-          <button class="tab" data-tab="city">City priorities</button>
+          <button class="tab" data-tab="city">Discussion points</button>
           <button class="tab" data-tab="categories">Categories</button>
-          <button class="tab" data-tab="gaps">Data gaps</button>
-          <button class="tab" data-tab="review">Review queue</button>
+          <button class="tab" data-tab="gaps">Missing information</button>
+          <button class="tab" data-tab="review">Rows to review</button>
         </nav>
 
         <section class="tab-panel active" id="overview">
@@ -127,7 +212,7 @@
               <div id="amountBars" class="bars"></div>
             </div>
             <div class="panel">
-              <h2>Rows by Confidence</h2>
+              <h2>Confidence In Current Classifications</h2>
               <div id="confidenceBars" class="bars"></div>
             </div>
           </div>
@@ -136,23 +221,23 @@
         <section class="tab-panel" id="city">
           <div class="two-column">
             <div class="panel">
-              <h2>Meeting-Driven Checks</h2>
+              <h2>Questions To Discuss With The City</h2>
               <div id="cautionBars" class="bars"></div>
             </div>
             <div class="panel">
-              <h2>E1 Mitigation / Adaptation</h2>
+              <h2>Climate-Related Split Inside E1</h2>
               <div id="climateBars" class="bars"></div>
             </div>
           </div>
           <div class="panel notes-panel">
-            <h2>Method Notes</h2>
+            <h2>Current Method Notes</h2>
             <ul id="methodologyNotes"></ul>
           </div>
         </section>
 
         <section class="tab-panel" id="categories">
           <div class="panel">
-            <h2>Top Categories</h2>
+            <h2>Largest Categories In This Run</h2>
             <div class="table-wrap">
               <table>
                 <thead>
@@ -166,14 +251,14 @@
 
         <section class="tab-panel" id="gaps">
           <div class="panel">
-            <h2>Missing Fields</h2>
+            <h2>Fields Missing From The Input Data</h2>
             <div id="gapBars" class="bars"></div>
           </div>
         </section>
 
         <section class="tab-panel" id="review">
           <div class="panel">
-            <h2>Rows Needing Review</h2>
+            <h2>Rows That Need Manual Review</h2>
             <div class="table-wrap">
               <table>
                 <thead>

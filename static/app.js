@@ -36,7 +36,7 @@ fetch("/api/config")
     syncInputToggles();
   })
   .catch(() => {
-    sourceSummary.textContent = "Local source check failed";
+    sourceSummary.textContent = "Could not read the current local defaults";
   });
 
 invoiceInput.addEventListener("change", () => {
@@ -60,8 +60,8 @@ form.addEventListener("submit", async (event) => {
   event.preventDefault();
   const label =
     sheetIndexInput.value === "0"
-      ? "Analyzing first worksheet..."
-      : `Analyzing worksheet ${sheetIndexInput.value}...`;
+      ? "Reviewing the first worksheet..."
+      : `Reviewing worksheet ${sheetIndexInput.value}...`;
   setStatus(label, false);
   downloadLink.classList.add("disabled");
   categoryDownloadLink.classList.add("disabled");
@@ -80,7 +80,7 @@ form.addEventListener("submit", async (event) => {
     const sheetName = payload.sheet_names?.[payload.sheet_index] || `worksheet ${payload.sheet_index}`;
     const invoiceLabel = fileNameFromPath(payload.invoice_file);
     setStatus(
-      `Processed ${formatNumber(payload.processed_rows)} rows from ${sheetName} in ${payload.duration_seconds}s using ${formatNumber(payload.mapping_entries)} mapping entries from ${invoiceLabel}.`,
+      `Reviewed ${formatNumber(payload.processed_rows)} rows from ${sheetName} in ${payload.duration_seconds}s using the selected category matching file for ${invoiceLabel}.`,
       false
     );
   } catch (error) {
@@ -200,31 +200,42 @@ function renderSourceSummary(config) {
   const invoiceReady = config.default_invoice_exists;
   const mappingReady = config.default_mapping_exists;
   const notesReady = config.meeting_notes_exists;
-  sourceSummary.textContent = `${invoiceReady ? "invoice ready" : "invoice missing"} · ${mappingReady ? "mapping ready" : "mapping missing"} · ${notesReady ? "notes ready" : "notes missing"}`;
+
+  if (invoiceReady && mappingReady) {
+    sourceSummary.textContent = notesReady
+      ? "Review setup is ready, with meeting notes available"
+      : "Review setup is ready";
+  } else if (invoiceReady) {
+    sourceSummary.textContent = "Add a category matching file before running a full review";
+  } else if (mappingReady) {
+    sourceSummary.textContent = "Add a spending workbook to begin";
+  } else {
+    sourceSummary.textContent = "Add a spending workbook and category matching file to begin";
+  }
 
   invoiceSourceName.textContent = invoiceReady ? config.default_invoice_name : "Not detected";
   invoiceSourceMeta.textContent = invoiceReady
     ? `${formatBytes(config.default_invoice_size_bytes)} · ${formatSheetMeta(config.default_invoice_sheet_names)}`
-    : "Choose a local file or update config.local.json";
+    : "Choose a local spending workbook below or save one in the desktop app.";
 
   mappingSourceName.textContent = mappingReady ? config.default_mapping_name : "Not detected";
   mappingSourceMeta.textContent = mappingReady
-    ? `${formatBytes(config.default_mapping_size_bytes)}`
-    : "Choose a local file or update config.local.json";
+    ? `${formatBytes(config.default_mapping_size_bytes)} · Used to match categories to ESRS themes`
+    : "Choose a reviewed category matching file below or save one in the desktop app.";
 
   notesSourceName.textContent = notesReady ? config.meeting_notes_name : "Not detected";
   notesSourceMeta.textContent = notesReady
-    ? "Meeting notes available"
-    : "Optional reference file";
+    ? "Optional meeting notes available for review discussions"
+    : "Optional notes file for review discussions";
 }
 
 function renderSheetHint(config) {
   const names = config.default_invoice_sheet_names || [];
   if (!names.length) {
-    sheetHint.textContent = "0 = first worksheet";
+    sheetHint.textContent = "Worksheet 0 is usually the main spending sheet.";
     return;
   }
-  sheetHint.textContent = names.map((name, index) => `${index}: ${name}`).join(" · ");
+  sheetHint.textContent = `Available worksheets: ${names.map((name, index) => `${index}: ${name}`).join(" · ")}`;
 }
 
 function syncInputToggles() {
