@@ -14,9 +14,10 @@ Once GitHub Pages is enabled, the public browser-only demo is available at:
 https://adcoder1.github.io/esrs-municipal-spending-tool/
 ```
 
-The public demo uses synthetic sample data and supports CSV files directly in
-the browser. No data is uploaded to a server. For XLSX files and private
-municipal datasets, use the local Python app.
+The public demo uses synthetic sample data and supports CSV and XLSX files
+directly in the browser. No data is uploaded to a server. If no separate
+mapping file is uploaded, the demo uses its built-in sample mapping. For
+private municipal datasets and the fuller local workflow, use the Python app.
 
 ## Why This Exists
 

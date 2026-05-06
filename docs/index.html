@@ -12,8 +12,8 @@
       <p>
         Browser-only demo for classifying municipal procurement and invoice data
         against ESRS environmental themes. This public page uses synthetic sample
-        data. If you upload local CSV files, they are processed in your browser
-        and are not sent to a server.
+        data. If you upload local CSV or Excel files, they are processed in your
+        browser and are not sent to a server.
       </p>
     </header>
 
@@ -22,24 +22,34 @@
         <strong>Prototype scope:</strong>
         This demo is for exploring classification logic and review workflows. It
         does not calculate environmental performance or produce formal ESRS
-        disclosures.
+        disclosures. Excel support reads the first worksheet in the uploaded
+        file.
       </section>
 
       <section class="panel">
         <h2>Analyze Data</h2>
         <div class="controls">
           <label>
-            <span>Invoice / procurement CSV</span>
-            <input id="invoiceFile" type="file" accept=".csv" />
+            <span>Invoice / procurement file</span>
+            <input id="invoiceFile" type="file" accept=".csv,.xlsx" />
+            <small>Upload CSV or Excel (.xlsx).</small>
           </label>
           <label>
-            <span>ESRS category mapping CSV</span>
-            <input id="mappingFile" type="file" accept=".csv" />
+            <span>Optional category-to-ESRS mapping</span>
+            <input id="mappingFile" type="file" accept=".csv,.xlsx" />
+            <small>
+              Only needed if you want to use your own reviewed mapping file.
+              Otherwise the built-in demo mapping will be used.
+            </small>
           </label>
         </div>
+        <label class="check-control">
+          <input id="useBuiltInMapping" type="checkbox" checked />
+          <span>Use built-in demo mapping when no mapping file is uploaded</span>
+        </label>
         <div class="actions">
           <button id="sampleButton" class="secondary" type="button">Use Sample Data</button>
-          <button id="analyzeButton" class="primary" type="button">Analyze CSV Files</button>
+          <button id="analyzeButton" class="primary" type="button">Analyze Files</button>
           <button id="exportButton" class="secondary hidden" type="button">Export Classified CSV</button>
           <a class="button" href="https://github.com/ADcoder1/esrs-municipal-spending-tool">View Source</a>
         </div>
@@ -76,6 +86,6 @@
         </section>
       </section>
     </main>
-    <script src="pages-app.js"></script>
+    <script type="module" src="pages-app.js"></script>
   </body>
 </html>

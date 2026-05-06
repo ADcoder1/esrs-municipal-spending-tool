@@ -76,11 +76,29 @@ label {
   gap: 7px;
 }
 
+small {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
 label span,
 .metric span {
   color: var(--muted);
   font-size: 13px;
   font-weight: 700;
+}
+
+.check-control {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.check-control span {
+  font-size: 14px;
+  font-weight: 600;
 }
 
 input[type="file"] {
