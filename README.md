@@ -110,9 +110,39 @@ Supported settings:
 - `ESRS_GAP_REPORT_PATH`
 - `ESRS_CODE_PLAN_PATH`
 
+## Share With A Collaborator
+
+To create a local-share package for a collaborator:
+
+```bash
+python3 scripts/build_collaborator_bundle.py
+```
+
+That creates:
+
+- `dist/esrs-municipal-spending-tool-local/`
+- `dist/esrs-municipal-spending-tool-local.zip`
+
+The bundle includes:
+
+- `Configure-ESRS-Tool.command` and `Configure-ESRS-Tool.bat`
+- `Run-ESRS-Tool.command` and `Run-ESRS-Tool.bat`
+- `LOCAL_COLLABORATOR_SETUP.md`
+
+Typical collaborator flow:
+
+1. Extract the zip
+2. Install Python `3.9+` if needed
+3. Run the `Configure` launcher once to choose local files
+4. Run the `Run` launcher to open the tool in a browser
+
+The collaborator's data stays on their own machine.
+
 ## Repository Contents
 
 - `app.py`: local app entry point
+- `launch_local_tool.py`: opens the main local app in a browser
+- `setup_local_tool.py`: writes a local config through a setup flow
 - `esrs_tool/`: Python backend and XLSX/CSV parser
 - `static/`: main local browser UI
 - `samples/`: synthetic public sample data
