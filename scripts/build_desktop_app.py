@@ -18,6 +18,7 @@ SPEC_DIR = BUILD_ROOT / "spec"
 WORK_DIR = BUILD_ROOT / "work"
 PYINSTALLER_CONFIG_DIR = BUILD_ROOT / "pyinstaller-cache"
 ENTRYPOINT = PROJECT_ROOT / "desktop_launcher.py"
+ICONS_DIR = PROJECT_ROOT / "static" / "icons"
 
 
 def _ensure_pyinstaller() -> None:
@@ -76,7 +77,16 @@ def main() -> None:
     ]
 
     if sys.platform == "darwin":
-        command.extend(["--osx-bundle-identifier", "org.sei.esrs-municipal-spending-tool"])
+        command.extend(
+            [
+                "--osx-bundle-identifier",
+                "org.sei.esrs-municipal-spending-tool",
+                "--icon",
+                str(ICONS_DIR / "app.icns"),
+            ]
+        )
+    elif os.name == "nt":
+        command.extend(["--icon", str(ICONS_DIR / "app.ico")])
 
     env = os.environ.copy()
     env["PYINSTALLER_CONFIG_DIR"] = str(PYINSTALLER_CONFIG_DIR)
