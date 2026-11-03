@@ -18,15 +18,15 @@ let pendingInvoiceFile = null;
 let currentColumns = [];
 
 const COLUMN_FIELDS = [
-  { target: "Belopp", label: "Value / amount", hint: "Choose one total column, or leave blank for standard split-value columns", terms: ["belopp", "amount", "summa", "total", "value", "netto", "kostnad"] },
-  { target: "Inköpskategori 3", label: "Main purchasing category", hint: "Use the most detailed category available", terms: ["inkopskategori 3", "niva 3", "category", "procurement"] },
-  { target: "Inköpskategori 2", label: "Purchasing category level 2", hint: "Optional", terms: ["inkopskategori 2", "niva 2"] },
-  { target: "Inköpskategori 1", label: "Purchasing category level 1", hint: "Optional", terms: ["inkopskategori 1", "niva 1"] },
-  { target: "Fakturatext", label: "Invoice description", hint: "Optional", terms: ["fakturatext", "description", "invoice detail", "text", "beskrivning"] },
-  { target: "Leverantörsnamn", label: "Supplier", hint: "Optional", terms: ["leverantor", "supplier", "vendor"] },
-  { target: "Förvaltning", label: "Department", hint: "Optional", terms: ["forvaltning", "department", "organisation", "organization"] },
-  { target: "Konto", label: "Account code", hint: "Optional", terms: ["konto", "account", "ledger"] },
-  { target: "UNSPSC", label: "Procurement code", hint: "Optional", terms: ["unspsc", "procurement code"] },
+  { target: "Belopp", label: "Value / amount", hint: "Needed for spending totals. Leave blank only for standard split-value columns", terms: ["belopp", "amount", "summa", "total", "value", "netto", "kostnad"] },
+  { target: "Inköpskategori 3", label: "Main purchasing category", hint: "Needed for category-guide matching. Use the most detailed category available", terms: ["inkopskategori 3", "niva 3", "category", "procurement"] },
+  { target: "Inköpskategori 2", label: "Purchasing category level 2", hint: "Use this if your most detailed category is at level 2", terms: ["inkopskategori 2", "niva 2"] },
+  { target: "Inköpskategori 1", label: "Purchasing category level 1", hint: "Use this if it is the only purchasing category available", terms: ["inkopskategori 1", "niva 1"] },
+  { target: "Fakturatext", label: "Invoice description", hint: "Optional, but helpful when a category is broad", terms: ["fakturatext", "description", "invoice detail", "text", "beskrivning"] },
+  { target: "Leverantörsnamn", label: "Supplier", hint: "Optional, but useful for review", terms: ["leverantor", "supplier", "vendor"] },
+  { target: "Förvaltning", label: "Department", hint: "Optional, but useful for review", terms: ["forvaltning", "department", "organisation", "organization"] },
+  { target: "Konto", label: "Account code", hint: "Optional, but useful for matching", terms: ["konto", "account", "ledger"] },
+  { target: "UNSPSC", label: "Procurement code", hint: "Optional, but useful for matching", terms: ["unspsc", "procurement code"] },
 ];
 
 invoiceInput.addEventListener("change", () => {
