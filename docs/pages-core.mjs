@@ -49,7 +49,7 @@ const KNOWN_HEADER_KEYS = new Set([
   "forvaltning",
 ]);
 
-const MAX_BROWSER_XLSX_BYTES = 100 * 1024 * 1024;
+const MAX_BROWSER_XLSX_BYTES = 120 * 1024 * 1024;
 
 export {
   ESRS_LABELS,
@@ -71,7 +71,7 @@ export async function readTableFile(file) {
     if ((file?.size || 0) > MAX_BROWSER_XLSX_BYTES) {
       const sizeMb = ((file.size || 0) / (1024 * 1024)).toFixed(1);
       throw new Error(
-        `This Excel file is ${sizeMb} MB. Files over 100 MB can exceed browser memory. Please use the standalone desktop app for this workbook.`
+        `This Excel file is ${sizeMb} MB. Files over 120 MB can exceed browser memory. Please use the standalone desktop app for this workbook.`
       );
     }
     return rowsToObjects(await parseXlsxMatrix(await file.arrayBuffer()));
