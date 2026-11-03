@@ -8,7 +8,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-from .analyzer import analyze, export_path
+from .analyzer import analyze, export_path, inspect_invoice_headers
 from . import config
 from .tabular import sheet_names
 
@@ -57,6 +57,20 @@ class EsrsHandler(BaseHTTPRequestHandler):
                 }
             )
             return
+        if parsed.path == "/api/columns":
+            try:
+                defaults = config.current_defaults()
+                query = parse_qs(parsed.query)
+                sheet_index = int(query.get("sheet_index", ["0"])[0])
+                self._send_json(
+                    {
+                        "headers": inspect_invoice_headers(defaults["invoice_path"], sheet_index),
+                        "sheet_names": _safe_sheet_names(defaults["invoice_path"]),
+                    }
+                )
+            except Exception as exc:
+                self._send_error(HTTPStatus.BAD_REQUEST, str(exc))
+            return
         if parsed.path.startswith("/api/export/"):
             export_id = parsed.path.rsplit("/", 1)[-1]
             try:
@@ -72,7 +86,7 @@ class EsrsHandler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         parsed = urlparse(self.path)
-        if parsed.path != "/api/analyze":
+        if parsed.path not in {"/api/analyze", "/api/columns"}:
             self._send_error(HTTPStatus.NOT_FOUND, "Not found")
             return
 
@@ -89,27 +103,38 @@ class EsrsHandler(BaseHTTPRequestHandler):
             with tempfile.TemporaryDirectory(prefix="esrs-upload-") as temp_dir:
                 temp_path = Path(temp_dir)
                 invoice_path = self._field_file(form, "invoice_file", temp_path)
-                mapping_path = self._field_file(form, "mapping_file", temp_path)
 
                 if invoice_path is None:
                     if _truthy(_form_value(form, "use_default_invoice")):
                         invoice_path = defaults["invoice_path"]
                     else:
                         raise ValueError("Choose an invoice/procurement CSV or XLSX file.")
+
+                if not invoice_path.exists():
+                    raise FileNotFoundError(f"Invoice file not found: {invoice_path}")
+
+                sheet_index = int(_form_value(form, "sheet_index") or "0")
+                if parsed.path == "/api/columns":
+                    self._send_json(
+                        {
+                            "headers": inspect_invoice_headers(invoice_path, sheet_index),
+                            "sheet_names": _safe_sheet_names(invoice_path),
+                        }
+                    )
+                    return
+
+                mapping_path = self._field_file(form, "mapping_file", temp_path)
                 if mapping_path is None:
                     if _truthy(_form_value(form, "use_default_mapping")):
                         mapping_path = defaults["mapping_path"]
                     else:
                         raise ValueError("Choose a category matching CSV or XLSX file.")
-
-                if not invoice_path.exists():
-                    raise FileNotFoundError(f"Invoice file not found: {invoice_path}")
                 if not mapping_path.exists():
                     raise FileNotFoundError(f"Mapping file not found: {mapping_path}")
 
                 max_rows = int(_form_value(form, "max_rows") or "50000")
-                sheet_index = int(_form_value(form, "sheet_index") or "0")
                 export_rows = _truthy(_form_value(form, "export_rows", "true"))
+                column_mapping = _column_mapping(_form_value(form, "column_mapping", "{}"))
 
                 result = analyze(
                     invoice_path=invoice_path,
@@ -117,6 +142,7 @@ class EsrsHandler(BaseHTTPRequestHandler):
                     max_rows=max_rows,
                     sheet_index=sheet_index,
                     export_rows=export_rows,
+                    column_mapping=column_mapping,
                 )
             self._send_json(result)
         except Exception as exc:
@@ -196,6 +222,16 @@ def _form_value(form: cgi.FieldStorage, name: str, default: str = "") -> str:
 
 def _truthy(value: str) -> bool:
     return str(value).strip().casefold() in {"1", "true", "yes", "on"}
+
+
+def _column_mapping(value: str):
+    try:
+        parsed = json.loads(value)
+    except json.JSONDecodeError as exc:
+        raise ValueError("The selected column setup is invalid.") from exc
+    if not isinstance(parsed, dict):
+        raise ValueError("The selected column setup is invalid.")
+    return {str(key): str(source) for key, source in parsed.items()}
 
 
 def _safe_sheet_names(path: Path):

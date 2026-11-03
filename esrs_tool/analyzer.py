@@ -2,8 +2,9 @@ import csv
 import time
 import uuid
 from collections import Counter, defaultdict
+from itertools import chain, islice
 from pathlib import Path
-from typing import Dict, List, Sequence, Set
+from typing import Dict, List, Mapping, Optional, Sequence, Set
 
 from .classifier import (
     AMOUNT_COLUMNS,
@@ -19,12 +20,26 @@ from .config import EXPORT_DIR
 from .tabular import iter_table, sheet_names
 
 
+COLUMN_MAPPING_TARGETS = {
+    "Belopp",
+    "Inköpskategori 1",
+    "Inköpskategori 2",
+    "Inköpskategori 3",
+    "Fakturatext",
+    "Leverantörsnamn",
+    "Förvaltning",
+    "Konto",
+    "UNSPSC",
+}
+
+
 def analyze(
     invoice_path: Path,
     mapping_path: Path,
     max_rows: int = 50000,
     sheet_index: int = 0,
     export_rows: bool = True,
+    column_mapping: Optional[Mapping[str, str]] = None,
 ) -> Dict[str, object]:
     started = time.time()
     if max_rows < 1:
@@ -32,9 +47,14 @@ def analyze(
 
     mapping = load_mapping(mapping_path)
     row_iter = iter_table(invoice_path, sheet_index=sheet_index, max_rows=max_rows + 1)
-    headers = _find_headers(row_iter)
+    scanned_rows = list(islice(row_iter, 50))
+    header_index = _find_header_index(scanned_rows)
+    headers = _dedupe_headers(scanned_rows[header_index]) if header_index is not None else []
     if not headers:
         raise ValueError("Could not identify a header row in the invoice file.")
+    row_iter = chain(scanned_rows[header_index + 1 :], row_iter)
+    normalized_mapping = _normalize_column_mapping(column_mapping, headers)
+    available_columns = set(headers) | set(normalized_mapping)
 
     export_id = str(uuid.uuid4())
     export_path = EXPORT_DIR / f"{export_id}.csv"
@@ -87,7 +107,8 @@ def analyze(
         for row_values in row_iter:
             if not any(str(cell).strip() for cell in row_values):
                 continue
-            row = _row_dict(headers, row_values)
+            source_row = _row_dict(headers, row_values)
+            row = _apply_column_mapping(source_row, normalized_mapping)
             row_count += 1
             amount = row_amount(row)
             classification = classify_row(row, mapping)
@@ -126,7 +147,7 @@ def analyze(
                 subcategory_counts[subcategory] += 1
 
             for column in DATA_GAP_COLUMNS:
-                if column in headers and not row.get(column, "").strip():
+                if column in available_columns and not row.get(column, "").strip():
                     gap_counts[column] += 1
 
             for caution in _caution_flags(row, classification):
@@ -143,7 +164,7 @@ def analyze(
                 _append_sample(unmatched_rows, row, classification, amount, unmatched_sample_keys)
 
             if writer:
-                export_row = dict(row)
+                export_row = dict(source_row)
                 export_row.update(
                     {
                         "ESRS Primary": primary,
@@ -230,8 +251,17 @@ def analyze(
         "category_export_id": category_export_id,
         "duration_seconds": round(time.time() - started, 2),
         "headers": headers,
+        "column_mapping": normalized_mapping,
         "methodology_notes": _methodology_notes(),
     }
+
+
+def inspect_invoice_headers(invoice_path: Path, sheet_index: int = 0) -> List[str]:
+    rows = list(islice(iter_table(invoice_path, sheet_index=sheet_index), 50))
+    header_index = _find_header_index(rows)
+    if header_index is None:
+        raise ValueError("Could not identify a header row in the invoice file.")
+    return _dedupe_headers(rows[header_index])
 
 
 def export_path(export_id: str) -> Path:
@@ -243,16 +273,43 @@ def export_path(export_id: str) -> Path:
     return path
 
 
-def _find_headers(row_iter) -> List[str]:
-    for row in row_iter:
+def _find_header_index(rows: Sequence[Sequence[str]]) -> Optional[int]:
+    fallback_index = None
+    fallback_score = 0
+    for index, row in enumerate(rows):
         normalized = {cell.strip() for cell in row if str(cell).strip()}
         if len(normalized) >= 3 and (
             normalized & set(CATEGORY_PRIORITY)
             or normalized & set(AMOUNT_COLUMNS)
             or "Förvaltning" in normalized
         ):
-            return _dedupe_headers(row)
-    return []
+            return index
+        if len(normalized) >= 2 and len(normalized) > fallback_score:
+            fallback_index = index
+            fallback_score = len(normalized)
+    return fallback_index
+
+
+def _normalize_column_mapping(
+    column_mapping: Optional[Mapping[str, str]], headers: Sequence[str]
+) -> Dict[str, str]:
+    if not column_mapping:
+        return {}
+    header_set = set(headers)
+    return {
+        target: source
+        for target, source in column_mapping.items()
+        if target in COLUMN_MAPPING_TARGETS and isinstance(source, str) and source in header_set
+    }
+
+
+def _apply_column_mapping(row: Dict[str, str], column_mapping: Mapping[str, str]) -> Dict[str, str]:
+    if not column_mapping:
+        return row
+    normalized = dict(row)
+    for target, source in column_mapping.items():
+        normalized[target] = row.get(source, "")
+    return normalized
 
 
 def _row_dict(headers: Sequence[str], values: Sequence[str]) -> Dict[str, str]:

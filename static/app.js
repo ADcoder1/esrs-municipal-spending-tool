@@ -16,8 +16,24 @@ const mappingSourceName = document.querySelector("#mappingSourceName");
 const mappingSourceMeta = document.querySelector("#mappingSourceMeta");
 const notesSourceName = document.querySelector("#notesSourceName");
 const notesSourceMeta = document.querySelector("#notesSourceMeta");
+const columnSetup = document.querySelector("#columnSetup");
+const columnGrid = document.querySelector("#columnGrid");
+const columnSetupStatus = document.querySelector("#columnSetupStatus");
 
 let currentConfig = null;
+let currentColumns = [];
+
+const COLUMN_FIELDS = [
+  { target: "Belopp", label: "Value / amount", hint: "Choose one total column, or leave blank for standard split-value columns", terms: ["belopp", "amount", "summa", "total", "value", "netto", "kostnad"] },
+  { target: "Inköpskategori 3", label: "Main purchasing category", hint: "Use the most detailed category available", terms: ["inkopskategori 3", "niva 3", "category", "procurement"] },
+  { target: "Inköpskategori 2", label: "Purchasing category level 2", hint: "Optional", terms: ["inkopskategori 2", "niva 2"] },
+  { target: "Inköpskategori 1", label: "Purchasing category level 1", hint: "Optional", terms: ["inkopskategori 1", "niva 1"] },
+  { target: "Fakturatext", label: "Invoice description", hint: "Optional", terms: ["fakturatext", "description", "invoice detail", "text", "beskrivning"] },
+  { target: "Leverantörsnamn", label: "Supplier", hint: "Optional", terms: ["leverantor", "supplier", "vendor"] },
+  { target: "Förvaltning", label: "Department", hint: "Optional", terms: ["forvaltning", "department", "organisation", "organization"] },
+  { target: "Konto", label: "Account code", hint: "Optional", terms: ["konto", "account", "ledger"] },
+  { target: "UNSPSC", label: "Procurement code", hint: "Optional", terms: ["unspsc", "procurement code"] },
+];
 
 const currency = new Intl.NumberFormat("sv-SE", {
   maximumFractionDigits: 0,
@@ -34,6 +50,7 @@ fetch("/api/config")
     renderSourceSummary(config);
     renderSheetHint(config);
     syncInputToggles();
+    inspectColumnHeaders();
   })
   .catch(() => {
     sourceSummary.textContent = "Could not read the current local defaults";
@@ -44,6 +61,7 @@ invoiceInput.addEventListener("change", () => {
     useDefaultInvoice.checked = false;
   }
   syncInputToggles();
+  inspectColumnHeaders();
 });
 
 mappingInput.addEventListener("change", () => {
@@ -53,8 +71,14 @@ mappingInput.addEventListener("change", () => {
   syncInputToggles();
 });
 
-useDefaultInvoice.addEventListener("change", syncInputToggles);
+useDefaultInvoice.addEventListener("change", () => {
+  syncInputToggles();
+  if (useDefaultInvoice.checked) {
+    inspectColumnHeaders();
+  }
+});
 useDefaultMapping.addEventListener("change", syncInputToggles);
+sheetIndexInput.addEventListener("change", inspectColumnHeaders);
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -69,6 +93,7 @@ form.addEventListener("submit", async (event) => {
 
   const body = new FormData(form);
   body.set("export_rows", "true");
+  body.set("column_mapping", JSON.stringify(selectedColumnMapping()));
 
   try {
     const response = await fetch("/api/analyze", { method: "POST", body });
@@ -87,6 +112,115 @@ form.addEventListener("submit", async (event) => {
     setStatus(error.message, true);
   }
 });
+
+async function inspectColumnHeaders() {
+  if (!invoiceInput.files.length && (!currentConfig || !currentConfig.default_invoice_exists)) {
+    columnSetup.classList.add("hidden");
+    return;
+  }
+
+  const body = new FormData();
+  body.set("sheet_index", sheetIndexInput.value || "0");
+  if (invoiceInput.files.length) {
+    body.set("invoice_file", invoiceInput.files[0]);
+  } else {
+    body.set("use_default_invoice", "true");
+  }
+
+  try {
+    const response = await fetch("/api/columns", { method: "POST", body });
+    const payload = await response.json();
+    if (!response.ok) {
+      throw new Error(payload.error || "Could not read the columns in this file.");
+    }
+    currentColumns = payload.headers || [];
+    renderColumnSetup(currentColumns);
+  } catch (error) {
+    columnSetup.classList.add("hidden");
+    setStatus(error.message, true);
+  }
+}
+
+function renderColumnSetup(headers) {
+  if (!headers.length) {
+    columnSetup.classList.add("hidden");
+    return;
+  }
+  const saved = loadSavedColumnMapping(headers);
+  const usedHeaders = new Set();
+  columnGrid.innerHTML = "";
+  COLUMN_FIELDS.forEach((field) => {
+    const label = document.createElement("label");
+    const title = document.createElement("span");
+    title.textContent = field.label;
+    const select = document.createElement("select");
+    select.dataset.columnTarget = field.target;
+    select.append(new Option("Not used", ""));
+    headers.forEach((header) => select.append(new Option(header, header)));
+
+    const savedHeader = saved[field.target];
+    const suggestedHeader = savedHeader && headers.includes(savedHeader)
+      ? savedHeader
+      : suggestedHeaderFor(field, headers, usedHeaders);
+    if (suggestedHeader) {
+      select.value = suggestedHeader;
+      usedHeaders.add(suggestedHeader);
+    }
+    select.addEventListener("change", () => saveColumnMapping(headers));
+
+    const hint = document.createElement("small");
+    hint.className = "helper";
+    hint.textContent = field.hint;
+    label.append(title, select, hint);
+    columnGrid.appendChild(label);
+  });
+  columnSetupStatus.textContent = `${headers.length} columns found in your file`;
+  columnSetup.classList.remove("hidden");
+}
+
+function suggestedHeaderFor(field, headers, usedHeaders) {
+  return headers.find((header) => {
+    const normalized = normalizeHeader(header);
+    return !usedHeaders.has(header) && field.terms.some((term) => normalized.includes(term));
+  });
+}
+
+function selectedColumnMapping() {
+  return Object.fromEntries(
+    [...columnGrid.querySelectorAll("select[data-column-target]")]
+      .map((select) => [select.dataset.columnTarget, select.value])
+      .filter(([, source]) => source)
+  );
+}
+
+function columnProfileKey(headers) {
+  return `esrs-column-profile:${headers.map(normalizeHeader).join("|")}`;
+}
+
+function loadSavedColumnMapping(headers) {
+  try {
+    return JSON.parse(localStorage.getItem(columnProfileKey(headers)) || "{}") || {};
+  } catch {
+    return {};
+  }
+}
+
+function saveColumnMapping(headers) {
+  try {
+    localStorage.setItem(columnProfileKey(headers), JSON.stringify(selectedColumnMapping()));
+  } catch {
+    // The current review can still continue when local storage is unavailable.
+  }
+}
+
+function normalizeHeader(value) {
+  return String(value || "")
+    .toLocaleLowerCase("sv-SE")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
 
 document.querySelectorAll(".tab").forEach((button) => {
   button.addEventListener("click", () => activateTab(button.dataset.tab));

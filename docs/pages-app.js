@@ -1,4 +1,4 @@
-import { ESRS_LABELS, analyzeRows, formatNumber, parseCsvMatrix, readTableFile, rowsToObjects } from "./pages-core.mjs";
+import { ESRS_LABELS, analyzeRows, applyColumnMapping, formatNumber, parseCsvMatrix, readTableFile, rowsToObjects } from "./pages-core.mjs";
 
 const invoiceInput = document.querySelector("#invoiceFile");
 const mappingInput = document.querySelector("#mappingFile");
@@ -8,8 +8,30 @@ const sampleButton = document.querySelector("#sampleButton");
 const exportButton = document.querySelector("#exportButton");
 const statusEl = document.querySelector("#status");
 const resultsEl = document.querySelector("#results");
+const columnSetup = document.querySelector("#columnSetup");
+const columnGrid = document.querySelector("#columnGrid");
+const columnSetupStatus = document.querySelector("#columnSetupStatus");
 
 let lastRows = [];
+let pendingInvoiceRows = [];
+let pendingInvoiceFile = null;
+let currentColumns = [];
+
+const COLUMN_FIELDS = [
+  { target: "Belopp", label: "Value / amount", hint: "Choose one total column, or leave blank for standard split-value columns", terms: ["belopp", "amount", "summa", "total", "value", "netto", "kostnad"] },
+  { target: "Inköpskategori 3", label: "Main purchasing category", hint: "Use the most detailed category available", terms: ["inkopskategori 3", "niva 3", "category", "procurement"] },
+  { target: "Inköpskategori 2", label: "Purchasing category level 2", hint: "Optional", terms: ["inkopskategori 2", "niva 2"] },
+  { target: "Inköpskategori 1", label: "Purchasing category level 1", hint: "Optional", terms: ["inkopskategori 1", "niva 1"] },
+  { target: "Fakturatext", label: "Invoice description", hint: "Optional", terms: ["fakturatext", "description", "invoice detail", "text", "beskrivning"] },
+  { target: "Leverantörsnamn", label: "Supplier", hint: "Optional", terms: ["leverantor", "supplier", "vendor"] },
+  { target: "Förvaltning", label: "Department", hint: "Optional", terms: ["forvaltning", "department", "organisation", "organization"] },
+  { target: "Konto", label: "Account code", hint: "Optional", terms: ["konto", "account", "ledger"] },
+  { target: "UNSPSC", label: "Procurement code", hint: "Optional", terms: ["unspsc", "procurement code"] },
+];
+
+invoiceInput.addEventListener("change", () => {
+  prepareInvoiceFile().catch((error) => setStatus(error.message, true));
+});
 
 analyzeButton.addEventListener("click", async () => {
   try {
@@ -18,7 +40,7 @@ analyzeButton.addEventListener("click", async () => {
     }
 
     setStatus("Analyzing file in your browser...");
-    const invoiceRows = await readTableFile(invoiceInput.files[0]);
+    const invoiceRows = await getInvoiceRows();
     const mappingRows = await loadMappingRows();
     const mappingSource = mappingInput.files[0]
       ? mappingInput.files[0].name
@@ -26,7 +48,7 @@ analyzeButton.addEventListener("click", async () => {
         ? "built-in starting guide"
         : "no category guide";
 
-    runAnalysis(invoiceRows, mappingRows, mappingSource);
+    runAnalysis(applyColumnMapping(invoiceRows, selectedColumnMapping()), mappingRows, mappingSource);
   } catch (error) {
     setStatus(error.message, true);
   }
@@ -44,6 +66,7 @@ sampleButton.addEventListener("click", async () => {
     }
     const invoiceRows = rowsFromText(await invoiceResponse.text());
     const mappingRows = rowsFromText(await mappingResponse.text());
+    columnSetup.classList.add("hidden");
     runAnalysis(invoiceRows, mappingRows, "built-in starting guide");
   } catch (error) {
     setStatus(error.message, true);
@@ -75,6 +98,114 @@ async function loadMappingRows() {
     throw new Error("Could not load the built-in starting guide.");
   }
   return rowsFromText(await response.text());
+}
+
+async function getInvoiceRows() {
+  const file = invoiceInput.files[0];
+  if (pendingInvoiceFile !== file) {
+    await prepareInvoiceFile();
+  }
+  return pendingInvoiceRows;
+}
+
+async function prepareInvoiceFile() {
+  const file = invoiceInput.files[0];
+  if (!file) {
+    pendingInvoiceRows = [];
+    pendingInvoiceFile = null;
+    currentColumns = [];
+    columnSetup.classList.add("hidden");
+    return;
+  }
+  setStatus("Checking the columns in your spending file...");
+  const rows = await readTableFile(file);
+  if (!rows.length) {
+    throw new Error("The spending file does not contain any data rows.");
+  }
+  pendingInvoiceRows = rows;
+  pendingInvoiceFile = file;
+  currentColumns = Object.keys(rows[0]);
+  renderColumnSetup(currentColumns);
+  setStatus(`We found ${currentColumns.length} columns. Check the suggested matches, then review the file.`);
+}
+
+function renderColumnSetup(headers) {
+  const saved = loadSavedColumnMapping(headers);
+  const usedHeaders = new Set();
+  columnGrid.innerHTML = "";
+  COLUMN_FIELDS.forEach((field) => {
+    const label = document.createElement("label");
+    const title = document.createElement("span");
+    title.textContent = field.label;
+    const select = document.createElement("select");
+    select.dataset.columnTarget = field.target;
+    select.append(new Option("Not used", ""));
+
+    headers.forEach((header) => {
+      select.append(new Option(header, header));
+    });
+
+    const savedHeader = saved[field.target];
+    const suggestedHeader = savedHeader && headers.includes(savedHeader)
+      ? savedHeader
+      : suggestedHeaderFor(field, headers, usedHeaders);
+    if (suggestedHeader) {
+      select.value = suggestedHeader;
+      usedHeaders.add(suggestedHeader);
+    }
+    select.addEventListener("change", () => saveColumnMapping(headers));
+
+    const hint = document.createElement("small");
+    hint.textContent = field.hint;
+    label.append(title, select, hint);
+    columnGrid.appendChild(label);
+  });
+  columnSetupStatus.textContent = `${headers.length} columns found in your file`;
+  columnSetup.classList.remove("hidden");
+}
+
+function suggestedHeaderFor(field, headers, usedHeaders) {
+  return headers.find((header) => {
+    const normalized = normalizeHeader(header);
+    return !usedHeaders.has(header) && field.terms.some((term) => normalized.includes(term));
+  });
+}
+
+function selectedColumnMapping() {
+  return Object.fromEntries(
+    [...columnGrid.querySelectorAll("select[data-column-target]")]
+      .map((select) => [select.dataset.columnTarget, select.value])
+      .filter(([, source]) => source)
+  );
+}
+
+function columnProfileKey(headers) {
+  return `esrs-column-profile:${headers.map(normalizeHeader).join("|")}`;
+}
+
+function loadSavedColumnMapping(headers) {
+  try {
+    return JSON.parse(localStorage.getItem(columnProfileKey(headers)) || "{}") || {};
+  } catch {
+    return {};
+  }
+}
+
+function saveColumnMapping(headers) {
+  try {
+    localStorage.setItem(columnProfileKey(headers), JSON.stringify(selectedColumnMapping()));
+  } catch {
+    // The current review can still continue when local storage is unavailable.
+  }
+}
+
+function normalizeHeader(value) {
+  return String(value || "")
+    .toLocaleLowerCase("sv-SE")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
 }
 
 function rowsFromText(text) {

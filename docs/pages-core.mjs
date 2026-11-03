@@ -102,6 +102,22 @@ export function analyzeRows(invoiceRows, mappingRows) {
   return { classified, mappingCount: Object.keys(mapping).length };
 }
 
+export function applyColumnMapping(rows, columnMapping = {}) {
+  const entries = Object.entries(columnMapping).filter(([, source]) => typeof source === "string" && source);
+  if (!entries.length) {
+    return rows;
+  }
+  return rows.map((row) => {
+    const normalized = { ...row };
+    entries.forEach(([target, source]) => {
+      if (Object.prototype.hasOwnProperty.call(row, source)) {
+        normalized[target] = row[source];
+      }
+    });
+    return normalized;
+  });
+}
+
 function parseXlsxMatrix(buffer) {
   return unzipEntries(new Uint8Array(buffer)).then(async (entries) => {
     const sharedStrings = entries.has("xl/sharedStrings.xml")
@@ -384,6 +400,8 @@ function rowsToObjects(rows) {
 }
 
 function findHeaderRow(rows) {
+  let fallbackIndex = 0;
+  let fallbackScore = 0;
   for (let index = 0; index < Math.min(rows.length, 20); index += 1) {
     const normalized = new Set(rows[index].map((cell) => normalizeKey(cell)));
     for (const key of normalized) {
@@ -391,8 +409,13 @@ function findHeaderRow(rows) {
         return index;
       }
     }
+    const score = rows[index].filter((cell) => String(cell || "").trim()).length;
+    if (score > fallbackScore) {
+      fallbackIndex = index;
+      fallbackScore = score;
+    }
   }
-  return 0;
+  return fallbackIndex;
 }
 
 function dedupeHeaders(headers) {

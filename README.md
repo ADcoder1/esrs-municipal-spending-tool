@@ -89,6 +89,8 @@ or produce formal ESRS disclosures.
 ## Features
 
 - Loads invoice/procurement data from CSV or XLSX
+- Lets each municipality match its own spending-export columns to amount,
+  purchasing category, description, supplier, and organisational fields
 - Loads an ESRS category mapping file from CSV or XLSX
 - Classifies rows into `E1-E5`, `None`, or `Unmatched`
 - Summarizes spending by ESRS theme, confidence, category, and missing fields
@@ -114,6 +116,11 @@ http://127.0.0.1:8765
 
 By default, the app uses synthetic sample files from `samples/`, but the local
 UI is designed to be the primary analysis workspace.
+
+When opening a new spending export, use **Match your columns** to confirm the
+suggested fields. The tool remembers a confirmed setup for the same set of
+column headings in that browser. A reviewed category guide should still use
+the tool's standard mapping headers.
 
 ## Use Private Local Data
 

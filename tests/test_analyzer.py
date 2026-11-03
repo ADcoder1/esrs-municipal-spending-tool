@@ -1,4 +1,5 @@
 import unittest
+import tempfile
 from pathlib import Path
 
 from esrs_tool.analyzer import analyze, export_path
@@ -61,6 +62,30 @@ class AnalyzerTests(unittest.TestCase):
         review_focus = " | ".join(legal_row.review_focus)
         self.assertNotIn("Cleaning", review_focus)
         self.assertEqual(review_focus, "")
+
+    def test_analysis_accepts_a_municipality_column_setup(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            invoice_path = Path(temp_dir) / "municipality_export.csv"
+            invoice_path.write_text(
+                "Local purchasing group,Net total,Invoice detail,Organisation\n"
+                "Juridiska tjänster,12500,Advice,Finance\n",
+                encoding="utf-8",
+            )
+            result = analyze(
+                invoice_path,
+                ROOT / "samples" / "sample_mapping.csv",
+                column_mapping={
+                    "Inköpskategori 3": "Local purchasing group",
+                    "Belopp": "Net total",
+                    "Fakturatext": "Invoice detail",
+                    "Förvaltning": "Organisation",
+                },
+                export_rows=False,
+            )
+
+        self.assertEqual(result["processed_rows"], 1)
+        self.assertEqual(result["total_amount"], 12500.0)
+        self.assertEqual(result["none_rows"], 1)
 
 
 if __name__ == "__main__":

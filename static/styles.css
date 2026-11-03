@@ -376,6 +376,29 @@ select {
   margin: 2px 0 0;
 }
 
+.column-setup {
+  border-top: 1px solid var(--line);
+  margin-top: 20px;
+  padding-top: 18px;
+}
+
+.column-setup .section-head {
+  align-items: start;
+  margin-bottom: 14px;
+}
+
+.column-setup h3 {
+  font-family: "Bastia", Georgia, serif;
+  font-size: 22px;
+  margin: 0 0 4px;
+}
+
+.column-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .actions {
   flex-wrap: wrap;
   display: flex;
@@ -659,6 +682,7 @@ th.amount {
   .workflow-panel,
   .source-grid,
   .control-grid,
+  .column-grid,
   .metric-grid,
   .two-column {
     grid-template-columns: 1fr;

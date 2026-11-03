@@ -75,6 +75,16 @@
           <input id="useBuiltInMapping" type="checkbox" checked />
           <span>Use the built-in starting guide when no category guide is uploaded</span>
         </label>
+        <section id="columnSetup" class="column-setup hidden" aria-labelledby="columnSetupHeading">
+          <div class="section-head">
+            <div>
+              <h3 id="columnSetupHeading">Match your columns</h3>
+              <p>Check the suggested matches before reviewing a new municipal export.</p>
+            </div>
+            <span id="columnSetupStatus" class="section-meta"></span>
+          </div>
+          <div id="columnGrid" class="column-grid"></div>
+        </section>
         <div class="actions">
           <button id="sampleButton" class="secondary" type="button">Use Example Data</button>
           <button id="analyzeButton" class="primary" type="button">Review Spending File</button>
