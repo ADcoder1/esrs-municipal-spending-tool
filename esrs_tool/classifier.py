@@ -77,6 +77,7 @@ class Classification:
     comment: str = ""
     review_focus: Tuple[str, ...] = ()
     context_tags: Tuple[str, ...] = ()
+    subcategories: Tuple[str, ...] = ()
 
 
 def load_mapping(path: Path) -> Dict[str, MappingEntry]:
@@ -301,6 +302,11 @@ def _with_context_guidance(row: Dict[str, str], classification: Classification) 
     useful first signals, but normally need purpose, specification or project-level
     context before they can be interpreted.
     """
+
+    # A reviewed None mapping is deliberately outside the environmental scope.
+    # Do not add an E1-E5 subcategory from incidental invoice keywords.
+    if classification.primary == "None":
+        return classification
 
     text = _guidance_text(row)
     detail_text = _guidance_detail_text(row)
@@ -545,6 +551,7 @@ def _with_context_guidance(row: Dict[str, str], classification: Classification) 
         )
     classification.review_focus = tuple(focus)
     classification.context_tags = tuple(tags)
+    classification.subcategories = _subcategories_for(tags, detail_text)
     return classification
 
 
@@ -584,6 +591,59 @@ def _guidance_detail_text(row: Dict[str, str]) -> str:
         "Description",
     )
     return normalize_key(" ".join(str(row.get(column, "")) for column in columns if row.get(column, "")))
+
+
+def _subcategories_for(context_tags: Sequence[str], detail_text: str) -> Tuple[str, ...]:
+    """Map contextual signals to the practical E1-E5 hierarchy used in the tool.
+
+    A row can legitimately have more than one subcategory. In that case the
+    displayed primary/secondary ESRS lenses remain the formal first layer and
+    the subcategories make the cross-theme context visible.
+    """
+
+    labels: List[str] = []
+
+    def add(*values: str) -> None:
+        for value in values:
+            if value not in labels:
+                labels.append(value)
+
+    for tag in context_tags:
+        if tag == "Energy and heating":
+            add("E1.1 Energy, heating and efficiency")
+        elif tag == "Transport and fleet":
+            add("E1.2 Transport, fleet and mobility")
+        elif tag == "Freight and deliveries":
+            add("E1.3 Freight and deliveries")
+        elif tag == "Climate adaptation":
+            add("E1.4 Climate adaptation and resilience")
+        elif tag == "Food and catering":
+            add("E1.5 Food and catering")
+        elif tag == "Construction and land":
+            add("E1.6 Construction and built environment", "E4.2 Land use and habitat")
+        elif tag == "Chemicals and hazardous substances":
+            add("E2.1 Chemicals, hazardous substances and remediation")
+        elif tag == "Cleaning products and services":
+            add("E2.2 Cleaning products and services")
+        elif tag == "Plastics":
+            add("E2.3 Plastics and pollution pathways", "E5.4 Materials and packaging")
+        elif tag == "Water and wastewater":
+            if _contains_any(detail_text, ("avlopp", "wastewater", "dagvatten", "stormwater", "spillvatten")):
+                add("E3.2 Wastewater, stormwater and water systems")
+            else:
+                add("E3.1 Water supply and use")
+        elif tag == "Marine and coastal resources":
+            add("E3.3 Marine and coastal resources")
+        elif tag == "Green space and biodiversity":
+            add("E4.1 Green space and ecological management")
+        elif tag == "Waste, reuse and circularity":
+            add("E5.1 Waste prevention, reuse and recycling")
+        elif tag == "Durability and repair":
+            add("E5.2 Durable goods, repair and take-back")
+        elif tag == "ICT equipment":
+            add("E5.3 ICT equipment and lifecycle")
+
+    return tuple(labels)
 
 
 def _find_header_row(rows: Sequence[Sequence[str]]) -> int:

@@ -57,6 +57,7 @@ def analyze(
                 "ESRS Comment",
                 "ESRS Review Focus",
                 "ESRS Context Tags",
+                "ESRS Subcategories",
             ],
         )
         writer.writeheader()
@@ -71,6 +72,7 @@ def analyze(
     method_counts = Counter()
     category_amounts = defaultdict(float)
     category_counts = Counter()
+    subcategory_counts = Counter()
     category_meta: Dict[str, Dict[str, object]] = {}
     gap_counts = Counter()
     caution_counts = Counter()
@@ -94,7 +96,8 @@ def analyze(
             method_counts[classification.method] += 1
 
             category = _best_category(row)
-            category_key = f"{primary}||{category or 'Unspecified'}"
+            subcategories = " | ".join(classification.subcategories)
+            category_key = f"{primary}||{subcategories}||{category or 'Unspecified'}"
             category_amounts[category_key] += amount
             category_counts[category_key] += 1
             category_meta.setdefault(
@@ -110,8 +113,12 @@ def analyze(
                     "comment": classification.comment,
                     "review_focus": " | ".join(classification.review_focus),
                     "context_tags": "; ".join(classification.context_tags),
+                    "subcategories": subcategories,
                 },
             )
+
+            for subcategory in classification.subcategories:
+                subcategory_counts[subcategory] += 1
 
             for column in DATA_GAP_COLUMNS:
                 if column in headers and not row.get(column, "").strip():
@@ -144,6 +151,7 @@ def analyze(
                         "ESRS Comment": classification.comment,
                         "ESRS Review Focus": " | ".join(classification.review_focus),
                         "ESRS Context Tags": "; ".join(classification.context_tags),
+                        "ESRS Subcategories": subcategories,
                     }
                 )
                 writer.writerow(export_row)
@@ -153,11 +161,12 @@ def analyze(
 
     top_categories = []
     for key, amount in sorted(category_amounts.items(), key=lambda item: abs(item[1]), reverse=True)[:25]:
-        esrs, category = key.split("||", 1)
+        esrs, subcategories, category = key.split("||", 2)
         top_categories.append(
             {
                 "esrs": esrs,
                 "label": ESRS_LABELS.get(esrs, ""),
+                "subcategories": subcategories,
                 "category": category,
                 "amount": amount,
                 "rows": category_counts[key],
@@ -202,6 +211,7 @@ def analyze(
         "confidence_counts": dict(confidence_counts),
         "method_counts": dict(method_counts),
         "caution_counts": dict(caution_counts),
+        "subcategory_counts": dict(subcategory_counts),
         "climate_split": dict(climate_split),
         "e5_amount": amount_by_esrs.get("E5", 0),
         "e5_rows": count_by_esrs.get("E5", 0),
@@ -321,6 +331,7 @@ def _append_sample(samples: List[Dict[str, object]], row: Dict[str, str], classi
             "matched": classification.matched_value,
             "review_focus": " | ".join(classification.review_focus),
             "context_tags": "; ".join(classification.context_tags),
+            "subcategories": " | ".join(classification.subcategories),
         }
     )
 
@@ -348,6 +359,7 @@ def _write_category_export(
                 "Comment",
                 "Review Focus",
                 "Context Tags",
+                "ESRS Subcategories",
                 "City Feedback",
             ],
         )
@@ -368,6 +380,7 @@ def _write_category_export(
                     "Comment": meta.get("comment", ""),
                     "Review Focus": meta.get("review_focus", ""),
                     "Context Tags": meta.get("context_tags", ""),
+                    "ESRS Subcategories": meta.get("subcategories", ""),
                     "City Feedback": "",
                 }
             )

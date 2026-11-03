@@ -60,6 +60,35 @@ The tool reports strict **manual-review rows** separately from **rows with
 context prompts**. A prompt is an invitation to interpret the available data
 carefully; it does not automatically mean that the classification is wrong.
 
+## ESRS Subcategory Hierarchy
+
+Where the category or invoice description provides enough evidence, the tool
+adds one or more practical subcategories below E1-E5:
+
+- `E1.1` Energy, heating and efficiency
+- `E1.2` Transport, fleet and mobility
+- `E1.3` Freight and deliveries
+- `E1.4` Climate adaptation and resilience
+- `E1.5` Food and catering
+- `E1.6` Construction and built environment
+- `E2.1` Chemicals, hazardous substances and remediation
+- `E2.2` Cleaning products and services
+- `E2.3` Plastics and pollution pathways
+- `E3.1` Water supply and use
+- `E3.2` Wastewater, stormwater and water systems
+- `E3.3` Marine and coastal resources
+- `E4.1` Green space and ecological management
+- `E4.2` Land use and habitat
+- `E5.1` Waste prevention, reuse and recycling
+- `E5.2` Durable goods, repair and take-back
+- `E5.3` ICT equipment and lifecycle
+- `E5.4` Materials and packaging
+
+Some purchases are legitimately cross-theme. For example, a construction row
+can carry both `E1.6 Construction and built environment` and `E4.2 Land use
+and habitat`; plastic can carry both an E2 and E5 subcategory. Where the source
+data is too broad, the subcategory is left blank rather than inferred.
+
 ## Current MVP Workflow
 
 1. Load invoice or procurement data.

@@ -94,6 +94,7 @@ export function analyzeRows(invoiceRows, mappingRows) {
       "ESRS Comment": classification.comment || "",
       "ESRS Review Focus": classification.reviewFocus.join(" | "),
       "ESRS Context Tags": classification.contextTags.join("; "),
+      "ESRS Subcategories": classification.subcategories.join(" | "),
       "ESRS Amount": amount.toFixed(2),
     };
   });
@@ -477,6 +478,9 @@ function heuristicClassification(row) {
 }
 
 function withContextGuidance(row, classification) {
+  if (classification.primary === "None") {
+    return { ...classification, reviewFocus: [], contextTags: [], subcategories: [] };
+  }
   const text = guidanceText(row);
   const detailText = guidanceDetailText(row);
   const reviewFocus = [];
@@ -521,7 +525,7 @@ function withContextGuidance(row, classification) {
   if (ict) add("ICT equipment", "Check device lifespan, repairability, reuse or take-back arrangements, and relevant energy use for hardware or networks.");
   if (plastics) add("Plastics", "Consider both material use and pollution pathways. Plastic can cut across resource use and pollution rather than sit in only one theme.");
   if (classification.primary === "Unmatched") add("Mapping gap", "Review the category hierarchy and invoice description, then add a municipal mapping entry if this is a recurring purchase.");
-  return { ...classification, reviewFocus, contextTags };
+  return { ...classification, reviewFocus, contextTags, subcategories: subcategoriesFor(contextTags, detailText) };
 }
 
 function containsAny(text, needles) {
@@ -542,6 +546,34 @@ function guidanceText(row) {
 function guidanceDetailText(row) {
   const columns = ["Inköpskategori 3", "Nivå 3 (SV)", "Nivå 3 (EN)", "Fakturatext", "Description"];
   return normalizeKey(columns.map((column) => row[column]).filter(Boolean).join(" "));
+}
+
+function subcategoriesFor(contextTags, detailText) {
+  const labels = [];
+  const add = (...values) => values.forEach((value) => {
+    if (!labels.includes(value)) labels.push(value);
+  });
+
+  contextTags.forEach((tag) => {
+    if (tag === "Energy and heating") add("E1.1 Energy, heating and efficiency");
+    else if (tag === "Transport and fleet") add("E1.2 Transport, fleet and mobility");
+    else if (tag === "Freight and deliveries") add("E1.3 Freight and deliveries");
+    else if (tag === "Climate adaptation") add("E1.4 Climate adaptation and resilience");
+    else if (tag === "Food and catering") add("E1.5 Food and catering");
+    else if (tag === "Construction and land") add("E1.6 Construction and built environment", "E4.2 Land use and habitat");
+    else if (tag === "Chemicals and hazardous substances") add("E2.1 Chemicals, hazardous substances and remediation");
+    else if (tag === "Cleaning products and services") add("E2.2 Cleaning products and services");
+    else if (tag === "Plastics") add("E2.3 Plastics and pollution pathways", "E5.4 Materials and packaging");
+    else if (tag === "Water and wastewater") {
+      if (containsAny(detailText, ["avlopp", "wastewater", "dagvatten", "stormwater", "spillvatten"])) add("E3.2 Wastewater, stormwater and water systems");
+      else add("E3.1 Water supply and use");
+    } else if (tag === "Marine and coastal resources") add("E3.3 Marine and coastal resources");
+    else if (tag === "Green space and biodiversity") add("E4.1 Green space and ecological management");
+    else if (tag === "Waste, reuse and circularity") add("E5.1 Waste prevention, reuse and recycling");
+    else if (tag === "Durability and repair") add("E5.2 Durable goods, repair and take-back");
+    else if (tag === "ICT equipment") add("E5.3 ICT equipment and lifecycle");
+  });
+  return labels;
 }
 
 function amountFor(row) {

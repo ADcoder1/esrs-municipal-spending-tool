@@ -100,6 +100,7 @@ function render(rows, mappingCount) {
   const confidence = {};
   const category = {};
   const guidance = {};
+  const subcategories = {};
   rows.forEach((row) => {
     const code = row["ESRS Primary"];
     const amount = parseNumber(row["ESRS Amount"]);
@@ -113,9 +114,17 @@ function render(rows, mappingCount) {
       .forEach((tag) => {
         guidance[tag] = (guidance[tag] || 0) + 1;
       });
+    String(row["ESRS Subcategories"] || "")
+      .split("|")
+      .map((subcategory) => subcategory.trim())
+      .filter(Boolean)
+      .forEach((subcategory) => {
+        subcategories[subcategory] = (subcategories[subcategory] || 0) + 1;
+      });
     const cat = bestCategory(row);
-    const key = `${code}||${cat}`;
-    category[key] = category[key] || { code, cat, rows: 0, amount: 0 };
+    const subcategory = row["ESRS Subcategories"] || (code === "None" ? "Not applicable (None)" : "Not specific enough in the available data");
+    const key = `${code}||${subcategory}||${cat}`;
+    category[key] = category[key] || { code, subcategory, cat, rows: 0, amount: 0 };
     category[key].rows += 1;
     category[key].amount += amount;
   });
@@ -130,13 +139,14 @@ function render(rows, mappingCount) {
   renderBars("#themeBars", Object.entries(amounts).map(([code, value]) => ({ label: `${code} · ${ESRS_LABELS[code] || ""}`, value })), formatNumber);
   renderBars("#confidenceBars", Object.entries(confidence).map(([label, value]) => ({ label, value })), (value) => value.toLocaleString());
   renderBars("#guidanceBars", Object.entries(guidance).map(([label, value]) => ({ label, value })), (value) => value.toLocaleString());
+  renderBars("#subcategoryBars", Object.entries(subcategories).map(([label, value]) => ({ label, value })), (value) => value.toLocaleString());
 
   const categoryRows = Object.values(category).sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount)).slice(0, 12);
   const body = document.querySelector("#categoryRows");
   body.innerHTML = "";
   categoryRows.forEach((row) => {
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${escapeHtml(row.code)}</td><td>${escapeHtml(row.cat)}</td><td>${row.rows.toLocaleString()}</td><td>${formatNumber(row.amount)}</td>`;
+    tr.innerHTML = `<td>${escapeHtml(row.code)}</td><td>${escapeHtml(row.subcategory)}</td><td>${escapeHtml(row.cat)}</td><td>${row.rows.toLocaleString()}</td><td>${formatNumber(row.amount)}</td>`;
     body.appendChild(tr);
   });
 

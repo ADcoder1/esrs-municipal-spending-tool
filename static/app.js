@@ -111,6 +111,7 @@ function renderResults(payload) {
   renderBars("#amountBars", payload.amount_by_esrs, "value", formatMoney, true);
   renderBars("#confidenceBars", counterToSeries(payload.confidence_counts), "value", formatNumber, false);
   renderBars("#cautionBars", counterToSeries(payload.caution_counts), "value", formatNumber, false);
+  renderBars("#subcategoryBars", counterToSeries(payload.subcategory_counts), "value", formatNumber, false);
   renderBars("#climateBars", counterToSeries(payload.climate_split), "value", formatNumber, false);
   renderBars("#gapBars", payload.data_gaps, "missing", (value, item) => `${formatNumber(value)} (${item.percent.toFixed(1)}%)`, false);
   renderMethodology(payload.methodology_notes || []);
@@ -158,6 +159,7 @@ function renderCategories(rows) {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${escapeHtml(row.esrs)}<br><small>${escapeHtml(row.label)}</small></td>
+      <td>${escapeHtml(row.subcategories || (row.esrs === "None" ? "Not applicable (None)" : "Not specific enough in the available data"))}</td>
       <td>${escapeHtml(row.category)}</td>
       <td>${formatNumber(row.rows)}</td>
       <td class="amount">${formatMoney(row.amount)}</td>
@@ -173,6 +175,7 @@ function renderReviewRows(rows) {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${escapeHtml(row.primary)}<br><small>${escapeHtml(row.label)}</small></td>
+      <td>${escapeHtml(row.subcategories || (row.primary === "None" ? "Not applicable (None)" : "Not specific enough in the available data"))}</td>
       <td>${escapeHtml(row.confidence)}</td>
       <td>${escapeHtml(row.category)}</td>
       <td>${escapeHtml(row.review_focus || "Check the matching category and invoice description.")}</td>
