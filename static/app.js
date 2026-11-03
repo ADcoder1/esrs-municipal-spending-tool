@@ -102,14 +102,14 @@ function renderResults(payload) {
     ? Math.round((payload.classified_rows / payload.processed_rows) * 100)
     : 0;
   document.querySelector("#rowsMetric").textContent = formatNumber(payload.processed_rows);
-  document.querySelector("#amountMetric").textContent = formatMoney(payload.total_amount);
+  document.querySelector("#amountMetric").textContent = formatValueInThousands(payload.total_amount);
   document.querySelector("#classifiedMetric").textContent = `${classifiedPercent}%`;
   document.querySelector("#noneMetric").textContent = formatNumber(payload.none_rows);
   document.querySelector("#unmatchedMetric").textContent = formatNumber(payload.unmatched_rows);
   document.querySelector("#reviewMetric").textContent = formatNumber(payload.review_count);
   renderPriority(payload, classifiedPercent);
 
-  renderBars("#amountBars", payload.amount_by_esrs, "value", formatMoney, true);
+  renderBars("#amountBars", payload.amount_by_esrs, "value", formatValueInThousands, true);
   renderBars("#confidenceBars", counterToSeries(payload.confidence_counts), "value", formatNumber, false);
   renderBars("#cautionBars", counterToSeries(payload.caution_counts), "value", formatNumber, false);
   renderBars("#subcategoryBars", counterToSeries(payload.subcategory_counts), "value", formatNumber, false);
@@ -163,7 +163,7 @@ function renderCategories(rows) {
       <td title="${escapeHtml(row.subcategories)}">${escapeHtml(shortTopicLabel(row.subcategories || (row.esrs === "None" ? "Not applicable" : "No detailed topic available")))}</td>
       <td>${escapeHtml(row.category)}</td>
       <td>${formatNumber(row.rows)}</td>
-      <td class="amount">${formatMoney(row.amount)}</td>
+      <td class="amount">${formatValueInThousands(row.amount)}</td>
     `;
     body.appendChild(tr);
   });
@@ -181,7 +181,7 @@ function renderReviewRows(rows) {
       <td title="${escapeHtml(row.review_focus)}">${escapeHtml(row.context_tags || "Confirm category and invoice description")}</td>
       <td>${escapeHtml(row.department || row.unit)}</td>
       <td>${escapeHtml(row.supplier)}</td>
-      <td class="amount">${formatMoney(row.amount)}</td>
+      <td class="amount">${formatValueInThousands(row.amount)}</td>
     `;
     body.appendChild(tr);
   });
@@ -196,7 +196,7 @@ function renderPriority(payload, classifiedPercent) {
 
   if (unmatchedRows) {
     heading.textContent = "Start with the purchases that are not yet categorised";
-    text.textContent = `${formatNumber(unmatchedRows)} purchases could not be linked to an environmental topic. Together they represent ${formatMoney(payload.unmatched_amount)}. Check recurring purchasing categories first, then add them to your category guide. ${formatNumber(reviewRows)} purchases also need a human check.`;
+    text.textContent = `${formatNumber(unmatchedRows)} purchases could not be linked to an environmental topic. Together they represent ${formatValueInThousands(payload.unmatched_amount)} ('000). Check recurring purchasing categories first, then add them to your category guide. ${formatNumber(reviewRows)} purchases also need a human check.`;
     return;
   }
 
@@ -329,8 +329,8 @@ function setStatus(message, isError) {
   }
 }
 
-function formatMoney(value) {
-  return currency.format(Number(value) || 0);
+function formatValueInThousands(value) {
+  return currency.format((Number(value) || 0) / 1000);
 }
 
 function formatNumber(value) {

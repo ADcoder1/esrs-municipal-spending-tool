@@ -138,14 +138,14 @@ function render(rows, mappingCount) {
   const reviewRows = representativeDecisionRows(decisionRows);
   const classifiedPercent = Math.round((classified / Math.max(rows.length, 1)) * 100);
   document.querySelector("#rowsMetric").textContent = rows.length.toLocaleString();
-  document.querySelector("#amountMetric").textContent = formatNumber(totalAmount);
+  document.querySelector("#amountMetric").textContent = formatValueInThousands(totalAmount);
   document.querySelector("#classifiedMetric").textContent = `${classifiedPercent}%`;
   document.querySelector("#noneMetric").textContent = (counts.None || 0).toLocaleString();
   document.querySelector("#unmatchedMetric").textContent = (counts.Unmatched || 0).toLocaleString();
   document.querySelector("#reviewMetric").textContent = decisionRows.length.toLocaleString();
   renderPriority(counts.Unmatched || 0, unmatchedAmount, decisionRows.length, classifiedPercent);
 
-  renderBars("#themeBars", Object.entries(amounts).map(([code, value]) => ({ label: readableThemeLabel(code, ESRS_LABELS[code] || ""), value })), formatNumber);
+  renderBars("#themeBars", Object.entries(amounts).map(([code, value]) => ({ label: readableThemeLabel(code, ESRS_LABELS[code] || ""), value })), formatValueInThousands);
   renderBars("#confidenceBars", Object.entries(confidence).map(([label, value]) => ({ label, value })), (value) => value.toLocaleString());
   renderBars("#guidanceBars", Object.entries(guidance).map(([label, value]) => ({ label, value })), (value) => value.toLocaleString());
   renderBars("#subcategoryBars", Object.entries(subcategories).map(([label, value]) => ({ label, value })), (value) => value.toLocaleString());
@@ -155,7 +155,7 @@ function render(rows, mappingCount) {
   body.innerHTML = "";
   categoryRows.forEach((row) => {
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${escapeHtml(readableThemeLabel(row.code, ESRS_LABELS[row.code] || ""))}</td><td title="${escapeHtml(row.subcategory)}">${escapeHtml(shortTopicLabel(row.subcategory))}</td><td>${escapeHtml(row.cat)}</td><td>${row.rows.toLocaleString()}</td><td>${formatNumber(row.amount)}</td>`;
+    tr.innerHTML = `<td>${escapeHtml(readableThemeLabel(row.code, ESRS_LABELS[row.code] || ""))}</td><td title="${escapeHtml(row.subcategory)}">${escapeHtml(shortTopicLabel(row.subcategory))}</td><td>${escapeHtml(row.cat)}</td><td>${row.rows.toLocaleString()}</td><td>${formatValueInThousands(row.amount)}</td>`;
     body.appendChild(tr);
   });
 
@@ -165,7 +165,7 @@ function render(rows, mappingCount) {
     .slice(0, 25)
     .forEach((row) => {
       const tr = document.createElement("tr");
-      tr.innerHTML = `<td>${escapeHtml(readableThemeLabel(row["ESRS Primary"], ESRS_LABELS[row["ESRS Primary"]] || ""))}</td><td>${escapeHtml(bestCategory(row))}</td><td title="${escapeHtml(row["ESRS Review Focus"] || "")}">${escapeHtml(row["ESRS Context Tags"] || "Confirm category and invoice description")}</td><td>${formatNumber(parseNumber(row["ESRS Amount"]))}</td>`;
+      tr.innerHTML = `<td>${escapeHtml(readableThemeLabel(row["ESRS Primary"], ESRS_LABELS[row["ESRS Primary"]] || ""))}</td><td>${escapeHtml(bestCategory(row))}</td><td title="${escapeHtml(row["ESRS Review Focus"] || "")}">${escapeHtml(row["ESRS Context Tags"] || "Confirm category and invoice description")}</td><td>${formatValueInThousands(parseNumber(row["ESRS Amount"]))}</td>`;
       reviewBody.appendChild(tr);
     });
 }
@@ -199,7 +199,7 @@ function renderPriority(unmatchedRows, unmatchedAmount, reviewRows, classifiedPe
   const text = document.querySelector("#priorityText");
   if (unmatchedRows) {
     heading.textContent = "Start with the purchases that are not yet categorised";
-    text.textContent = `${unmatchedRows.toLocaleString()} purchases could not be linked to an environmental topic. Together they represent ${formatNumber(unmatchedAmount)}. Check recurring purchasing categories first, then add them to your category guide. ${reviewRows.toLocaleString()} purchases also need a human check.`;
+    text.textContent = `${unmatchedRows.toLocaleString()} purchases could not be linked to an environmental topic. Together they represent ${formatValueInThousands(unmatchedAmount)} ('000). Check recurring purchasing categories first, then add them to your category guide. ${reviewRows.toLocaleString()} purchases also need a human check.`;
     return;
   }
   if (reviewRows) {
@@ -215,6 +215,10 @@ function readableThemeLabel(code, label) {
   if (code === "None") return "Outside environmental scope";
   if (code === "Unmatched") return "Not yet categorised";
   return `${label} (${code})`;
+}
+
+function formatValueInThousands(value) {
+  return formatNumber((Number(value) || 0) / 1000);
 }
 
 function shortTopicLabel(value) {
