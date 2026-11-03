@@ -80,7 +80,7 @@ form.addEventListener("submit", async (event) => {
     const sheetName = payload.sheet_names?.[payload.sheet_index] || `worksheet ${payload.sheet_index}`;
     const invoiceLabel = fileNameFromPath(payload.invoice_file);
     setStatus(
-      `Reviewed ${formatNumber(payload.processed_rows)} rows from ${sheetName} in ${payload.duration_seconds}s using the selected category matching file for ${invoiceLabel}.`,
+      `Reviewed ${formatNumber(payload.processed_rows)} purchases from ${sheetName} in ${payload.duration_seconds}s using the selected category guide for ${invoiceLabel}.`,
       false
     );
   } catch (error) {
@@ -89,12 +89,11 @@ form.addEventListener("submit", async (event) => {
 });
 
 document.querySelectorAll(".tab").forEach((button) => {
-  button.addEventListener("click", () => {
-    document.querySelectorAll(".tab").forEach((item) => item.classList.remove("active"));
-    document.querySelectorAll(".tab-panel").forEach((item) => item.classList.remove("active"));
-    button.classList.add("active");
-    document.querySelector(`#${button.dataset.tab}`).classList.add("active");
-  });
+  button.addEventListener("click", () => activateTab(button.dataset.tab));
+});
+
+document.querySelectorAll("[data-tab-target]").forEach((button) => {
+  button.addEventListener("click", () => activateTab(button.dataset.tabTarget));
 });
 
 function renderResults(payload) {
@@ -105,6 +104,7 @@ function renderResults(payload) {
   document.querySelector("#rowsMetric").textContent = formatNumber(payload.processed_rows);
   document.querySelector("#amountMetric").textContent = formatMoney(payload.total_amount);
   document.querySelector("#classifiedMetric").textContent = `${classifiedPercent}%`;
+  document.querySelector("#noneMetric").textContent = formatNumber(payload.none_rows);
   document.querySelector("#unmatchedMetric").textContent = formatNumber(payload.unmatched_rows);
   document.querySelector("#reviewMetric").textContent = formatNumber(payload.review_count);
   renderPriority(payload, classifiedPercent);
@@ -134,7 +134,7 @@ function renderBars(selector, rows, valueKey, formatter, useEsrsClass) {
   element.innerHTML = "";
   const max = Math.max(...rows.map((row) => Math.abs(Number(row[valueKey]) || 0)), 1);
   rows.forEach((row) => {
-    const label = row.code ? `${row.code} · ${row.label}` : row.column || row.label;
+    const label = row.code ? readableThemeLabel(row.code, row.label) : row.column || row.label;
     const value = Number(row[valueKey]) || 0;
     const bar = document.createElement("div");
     bar.className = "bar-row";
@@ -159,8 +159,8 @@ function renderCategories(rows) {
   rows.forEach((row) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${escapeHtml(row.esrs)}<br><small>${escapeHtml(row.label)}</small></td>
-      <td title="${escapeHtml(row.subcategories)}">${escapeHtml(shortTopicLabel(row.subcategories || (row.esrs === "None" ? "Not applicable" : "No primary-theme subcategory")))}</td>
+      <td>${escapeHtml(readableThemeLabel(row.esrs, row.label))}</td>
+      <td title="${escapeHtml(row.subcategories)}">${escapeHtml(shortTopicLabel(row.subcategories || (row.esrs === "None" ? "Not applicable" : "No detailed topic available")))}</td>
       <td>${escapeHtml(row.category)}</td>
       <td>${formatNumber(row.rows)}</td>
       <td class="amount">${formatMoney(row.amount)}</td>
@@ -175,8 +175,8 @@ function renderReviewRows(rows) {
   rows.forEach((row) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${escapeHtml(row.primary)}<br><small>${escapeHtml(row.label)}</small></td>
-      <td title="${escapeHtml(row.subcategories)}">${escapeHtml(shortTopicLabel(row.subcategories || (row.primary === "None" ? "Not applicable" : "No primary-theme subcategory")))}</td>
+      <td>${escapeHtml(readableThemeLabel(row.primary, row.label))}</td>
+      <td title="${escapeHtml(row.subcategories)}">${escapeHtml(shortTopicLabel(row.subcategories || (row.primary === "None" ? "Not applicable" : "No detailed topic available")))}</td>
       <td>${escapeHtml(row.category)}</td>
       <td title="${escapeHtml(row.review_focus)}">${escapeHtml(row.context_tags || "Confirm category and invoice description")}</td>
       <td>${escapeHtml(row.department || row.unit)}</td>
@@ -192,15 +192,38 @@ function renderPriority(payload, classifiedPercent) {
   const text = document.querySelector("#priorityText");
   const unmatchedRows = Number(payload.unmatched_rows) || 0;
   const reviewRows = Number(payload.review_count) || 0;
+  const noneRows = Number(payload.none_rows) || 0;
 
   if (unmatchedRows) {
-    heading.textContent = "Review the mapping gaps first";
-    text.textContent = `${formatNumber(unmatchedRows)} rows have no category match yet, representing ${formatMoney(payload.unmatched_amount)} in net input value. Resolve recurring gaps before using the theme totals for decisions. ${formatNumber(reviewRows)} rows also need a manual decision.`;
+    heading.textContent = "Start with the purchases that are not yet categorised";
+    text.textContent = `${formatNumber(unmatchedRows)} purchases could not be linked to an environmental topic. Together they represent ${formatMoney(payload.unmatched_amount)}. Check recurring purchasing categories first, then add them to your category guide. ${formatNumber(reviewRows)} purchases also need a human check.`;
     return;
   }
 
-  heading.textContent = "Start with the rows that need a decision";
-  text.textContent = `${classifiedPercent}% of rows have an E1-E5 theme. There are no unmatched rows in this run; focus next on the ${formatNumber(reviewRows)} rows marked for a manual decision.`;
+  if (reviewRows) {
+    heading.textContent = "Next, check the suggested links";
+    text.textContent = `${classifiedPercent}% of purchases were linked to an environmental topic and ${formatNumber(noneRows)} are outside environmental scope by default. Focus on the ${formatNumber(reviewRows)} purchases that need a human check before using the results in a discussion or decision.`;
+    return;
+  }
+
+  heading.textContent = "Your results are ready to explore";
+  text.textContent = `${classifiedPercent}% of purchases were linked to an environmental topic and ${formatNumber(noneRows)} are outside environmental scope by default. Use the environmental topics tab to see the largest groups of spending.`;
+}
+
+function activateTab(tabId) {
+  const target = document.querySelector(`#${tabId}`);
+  const tab = document.querySelector(`.tab[data-tab="${tabId}"]`);
+  if (!target || !tab) return;
+  document.querySelectorAll(".tab").forEach((item) => item.classList.remove("active"));
+  document.querySelectorAll(".tab-panel").forEach((item) => item.classList.remove("active"));
+  tab.classList.add("active");
+  target.classList.add("active");
+}
+
+function readableThemeLabel(code, label) {
+  if (code === "None") return "Outside environmental scope";
+  if (code === "Unmatched") return "Not yet categorised";
+  return `${label} (${code})`;
 }
 
 function shortTopicLabel(value) {
@@ -251,22 +274,22 @@ function renderSourceSummary(config) {
       ? "Review setup is ready, with meeting notes available"
       : "Review setup is ready";
   } else if (invoiceReady) {
-    sourceSummary.textContent = "Add a category matching file before running a full review";
+    sourceSummary.textContent = "Add a category guide before running a full review";
   } else if (mappingReady) {
-    sourceSummary.textContent = "Add a spending workbook to begin";
+    sourceSummary.textContent = "Add a spending file to begin";
   } else {
-    sourceSummary.textContent = "Add a spending workbook and category matching file to begin";
+    sourceSummary.textContent = "Add a spending file and category guide to begin";
   }
 
   invoiceSourceName.textContent = invoiceReady ? config.default_invoice_name : "Not detected";
   invoiceSourceMeta.textContent = invoiceReady
     ? `${formatBytes(config.default_invoice_size_bytes)} · ${formatSheetMeta(config.default_invoice_sheet_names)}`
-    : "Choose a local spending workbook below or save one in the desktop app.";
+    : "Choose a local spending file below or save one in the desktop app.";
 
   mappingSourceName.textContent = mappingReady ? config.default_mapping_name : "Not detected";
   mappingSourceMeta.textContent = mappingReady
-    ? `${formatBytes(config.default_mapping_size_bytes)} · Used to match categories to ESRS themes`
-    : "Choose a reviewed category matching file below or save one in the desktop app.";
+    ? `${formatBytes(config.default_mapping_size_bytes)} · Links purchasing categories to environmental topics`
+    : "Choose a reviewed category guide below or save one in the desktop app.";
 
   notesSourceName.textContent = notesReady ? config.meeting_notes_name : "Not detected";
   notesSourceMeta.textContent = notesReady

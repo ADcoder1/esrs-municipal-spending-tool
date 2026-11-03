@@ -450,7 +450,7 @@ button svg,
 .metric-grid {
   display: grid;
   gap: 14px;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   margin: 22px 0;
 }
 
@@ -481,6 +481,27 @@ button svg,
   color: #5d4b25;
   line-height: 1.55;
   margin: 0;
+}
+
+.priority-panel .priority-note {
+  border-top: 1px solid #ead8a9;
+  color: #66572f;
+  font-size: 13px;
+  margin-top: 14px;
+  padding-top: 12px;
+}
+
+.priority-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.priority-action {
+  background: white;
+  border: 1px solid #cfb76f;
+  color: #5d4b25;
 }
 
 .tabs {
@@ -626,6 +647,7 @@ th.amount {
 @media (max-width: 860px) {
   .hero-topline,
   .actions,
+  .priority-actions,
   .tabs,
   .section-head {
     align-items: stretch;

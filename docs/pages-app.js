@@ -14,7 +14,7 @@ let lastRows = [];
 analyzeButton.addEventListener("click", async () => {
   try {
     if (!invoiceInput.files[0]) {
-      throw new Error("Choose an invoice or procurement CSV/XLSX file, or use the sample data.");
+      throw new Error("Choose a spending CSV/XLSX file, or use the example data.");
     }
 
     setStatus("Analyzing file in your browser...");
@@ -23,8 +23,8 @@ analyzeButton.addEventListener("click", async () => {
     const mappingSource = mappingInput.files[0]
       ? mappingInput.files[0].name
       : useBuiltInMappingInput.checked
-        ? "built-in Helsingborg mapping"
-        : "no mapping";
+        ? "built-in starting guide"
+        : "no category guide";
 
     runAnalysis(invoiceRows, mappingRows, mappingSource);
   } catch (error) {
@@ -34,7 +34,7 @@ analyzeButton.addEventListener("click", async () => {
 
 sampleButton.addEventListener("click", async () => {
   try {
-    setStatus("Loading synthetic sample data...");
+    setStatus("Loading example data...");
     const [invoiceResponse, mappingResponse] = await Promise.all([
       fetch("demo/sample_invoices.csv"),
       fetch("demo/helsingborg_esrs_mapping_v2.csv"),
@@ -44,7 +44,7 @@ sampleButton.addEventListener("click", async () => {
     }
     const invoiceRows = rowsFromText(await invoiceResponse.text());
     const mappingRows = rowsFromText(await mappingResponse.text());
-    runAnalysis(invoiceRows, mappingRows, "built-in Helsingborg mapping");
+    runAnalysis(invoiceRows, mappingRows, "built-in starting guide");
   } catch (error) {
     setStatus(error.message, true);
   }
@@ -68,11 +68,11 @@ async function loadMappingRows() {
     return readTableFile(mappingInput.files[0]);
   }
   if (!useBuiltInMappingInput.checked) {
-    throw new Error("Upload a category-to-ESRS mapping file, or enable the built-in Helsingborg mapping.");
+    throw new Error("Upload a category guide, or enable the built-in starting guide.");
   }
   const response = await fetch("demo/helsingborg_esrs_mapping_v2.csv");
   if (!response.ok) {
-    throw new Error("Could not load the built-in Helsingborg mapping.");
+    throw new Error("Could not load the built-in starting guide.");
   }
   return rowsFromText(await response.text());
 }
@@ -87,7 +87,7 @@ function runAnalysis(invoiceRows, mappingRows, mappingSource) {
   lastRows = classified;
   render(classified, mappingCount);
   setStatus(
-    `Processed ${classified.length.toLocaleString()} rows in your browser using ${mappingSource}. No data was uploaded.`
+    `Reviewed ${classified.length.toLocaleString()} purchases in your browser using ${mappingSource}. No data was uploaded.`
   );
 }
 
@@ -126,7 +126,7 @@ function render(rows, mappingCount) {
         subcategories[subcategory] = (subcategories[subcategory] || 0) + 1;
       });
     const cat = bestCategory(row);
-    const subcategory = row["ESRS Subcategories"] || (code === "None" ? "Not applicable (None)" : "Not specific enough in the available data");
+    const subcategory = row["ESRS Subcategories"] || (code === "None" ? "Not applicable" : "No detailed topic available");
     const key = `${code}||${subcategory}||${cat}`;
     category[key] = category[key] || { code, subcategory, cat, rows: 0, amount: 0 };
     category[key].rows += 1;
@@ -140,11 +140,12 @@ function render(rows, mappingCount) {
   document.querySelector("#rowsMetric").textContent = rows.length.toLocaleString();
   document.querySelector("#amountMetric").textContent = formatNumber(totalAmount);
   document.querySelector("#classifiedMetric").textContent = `${classifiedPercent}%`;
+  document.querySelector("#noneMetric").textContent = (counts.None || 0).toLocaleString();
   document.querySelector("#unmatchedMetric").textContent = (counts.Unmatched || 0).toLocaleString();
   document.querySelector("#reviewMetric").textContent = decisionRows.length.toLocaleString();
   renderPriority(counts.Unmatched || 0, unmatchedAmount, decisionRows.length, classifiedPercent);
 
-  renderBars("#themeBars", Object.entries(amounts).map(([code, value]) => ({ label: `${code} · ${ESRS_LABELS[code] || ""}`, value })), formatNumber);
+  renderBars("#themeBars", Object.entries(amounts).map(([code, value]) => ({ label: readableThemeLabel(code, ESRS_LABELS[code] || ""), value })), formatNumber);
   renderBars("#confidenceBars", Object.entries(confidence).map(([label, value]) => ({ label, value })), (value) => value.toLocaleString());
   renderBars("#guidanceBars", Object.entries(guidance).map(([label, value]) => ({ label, value })), (value) => value.toLocaleString());
   renderBars("#subcategoryBars", Object.entries(subcategories).map(([label, value]) => ({ label, value })), (value) => value.toLocaleString());
@@ -154,7 +155,7 @@ function render(rows, mappingCount) {
   body.innerHTML = "";
   categoryRows.forEach((row) => {
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${escapeHtml(row.code)}</td><td title="${escapeHtml(row.subcategory)}">${escapeHtml(shortTopicLabel(row.subcategory))}</td><td>${escapeHtml(row.cat)}</td><td>${row.rows.toLocaleString()}</td><td>${formatNumber(row.amount)}</td>`;
+    tr.innerHTML = `<td>${escapeHtml(readableThemeLabel(row.code, ESRS_LABELS[row.code] || ""))}</td><td title="${escapeHtml(row.subcategory)}">${escapeHtml(shortTopicLabel(row.subcategory))}</td><td>${escapeHtml(row.cat)}</td><td>${row.rows.toLocaleString()}</td><td>${formatNumber(row.amount)}</td>`;
     body.appendChild(tr);
   });
 
@@ -164,7 +165,7 @@ function render(rows, mappingCount) {
     .slice(0, 25)
     .forEach((row) => {
       const tr = document.createElement("tr");
-      tr.innerHTML = `<td>${escapeHtml(row["ESRS Primary"])}</td><td>${escapeHtml(bestCategory(row))}</td><td title="${escapeHtml(row["ESRS Review Focus"] || "")}">${escapeHtml(row["ESRS Context Tags"] || "Confirm category and invoice description")}</td><td>${formatNumber(parseNumber(row["ESRS Amount"]))}</td>`;
+      tr.innerHTML = `<td>${escapeHtml(readableThemeLabel(row["ESRS Primary"], ESRS_LABELS[row["ESRS Primary"]] || ""))}</td><td>${escapeHtml(bestCategory(row))}</td><td title="${escapeHtml(row["ESRS Review Focus"] || "")}">${escapeHtml(row["ESRS Context Tags"] || "Confirm category and invoice description")}</td><td>${formatNumber(parseNumber(row["ESRS Amount"]))}</td>`;
       reviewBody.appendChild(tr);
     });
 }
@@ -197,12 +198,23 @@ function renderPriority(unmatchedRows, unmatchedAmount, reviewRows, classifiedPe
   const heading = document.querySelector("#priorityHeading");
   const text = document.querySelector("#priorityText");
   if (unmatchedRows) {
-    heading.textContent = "Review the mapping gaps first";
-    text.textContent = `${unmatchedRows.toLocaleString()} rows have no category match yet, representing ${formatNumber(unmatchedAmount)} in net input value. Resolve recurring gaps before using theme totals for decisions. ${reviewRows.toLocaleString()} rows also need a manual decision.`;
+    heading.textContent = "Start with the purchases that are not yet categorised";
+    text.textContent = `${unmatchedRows.toLocaleString()} purchases could not be linked to an environmental topic. Together they represent ${formatNumber(unmatchedAmount)}. Check recurring purchasing categories first, then add them to your category guide. ${reviewRows.toLocaleString()} purchases also need a human check.`;
     return;
   }
-  heading.textContent = "Start with the rows that need a decision";
-  text.textContent = `${classifiedPercent}% of rows have an E1-E5 theme. There are no unmatched rows in this run; focus next on the ${reviewRows.toLocaleString()} rows marked for a manual decision.`;
+  if (reviewRows) {
+    heading.textContent = "Next, check the suggested links";
+    text.textContent = `${classifiedPercent}% of purchases were linked to an environmental topic. Focus on the ${reviewRows.toLocaleString()} purchases that need a human check before using the results in a discussion or decision.`;
+    return;
+  }
+  heading.textContent = "Your results are ready to explore";
+  text.textContent = `${classifiedPercent}% of purchases were linked to an environmental topic. Use the detailed topics and largest groups below to explore the result.`;
+}
+
+function readableThemeLabel(code, label) {
+  if (code === "None") return "Outside environmental scope";
+  if (code === "Unmatched") return "Not yet categorised";
+  return `${label} (${code})`;
 }
 
 function shortTopicLabel(value) {

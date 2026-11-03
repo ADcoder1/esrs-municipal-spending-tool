@@ -47,38 +47,37 @@
 
     <main class="shell">
       <section class="panel notice">
-        <strong>What this tool does:</strong>
-        It provides a transparent first-pass classification and highlights the
-        contextual checks needed for broad categories such as construction,
-        transport, food and green space. It does not calculate environmental
-        performance or produce formal ESRS disclosures. Excel support reads the
-        first worksheet in the uploaded file.
+        <strong>Use this tool to:</strong>
+        sort municipal purchases into environmental topics, find categories that
+        need more information, and prepare examples to discuss with colleagues.
+        It does not calculate environmental impact or make formal ESRS disclosures.
+        Excel support reads the first worksheet in the uploaded file.
       </section>
 
       <section class="panel">
         <h2>Analyze Data</h2>
         <div class="controls">
           <label>
-            <span>Invoice / procurement file</span>
+            <span>Your spending file</span>
             <input id="invoiceFile" type="file" accept=".csv,.xlsx" />
             <small>Upload CSV or Excel (.xlsx). The file stays in this browser during the review.</small>
           </label>
           <label>
-            <span>Optional revised category-to-ESRS mapping</span>
+            <span>Your category guide (optional)</span>
             <input id="mappingFile" type="file" accept=".csv,.xlsx" />
             <small>
-              Upload this only when you have a revised mapping. Otherwise the built-in
-              Helsingborg validation mapping will be used.
+              This file connects your local purchasing categories to environmental topics.
+              Use it only when you have a reviewed version; otherwise the built-in starting guide will be used.
             </small>
           </label>
         </div>
         <label class="check-control">
           <input id="useBuiltInMapping" type="checkbox" checked />
-          <span>Use built-in Helsingborg validation mapping when no mapping file is uploaded</span>
+          <span>Use the built-in starting guide when no category guide is uploaded</span>
         </label>
         <div class="actions">
-          <button id="sampleButton" class="secondary" type="button">Use Sample Data</button>
-          <button id="analyzeButton" class="primary" type="button">Analyze Files</button>
+          <button id="sampleButton" class="secondary" type="button">Use Example Data</button>
+          <button id="analyzeButton" class="primary" type="button">Review Spending File</button>
           <button id="exportButton" class="secondary hidden" type="button">Export Classified CSV</button>
           <a class="button" href="https://github.com/ADcoder1/esrs-municipal-spending-tool">View Source</a>
         </div>
@@ -87,49 +86,53 @@
 
       <section id="results" class="hidden">
         <div class="metric-grid">
-          <div class="metric"><span>Rows analysed</span><strong id="rowsMetric">0</strong></div>
-          <div class="metric"><span>Net amount in input</span><strong id="amountMetric">0</strong></div>
-          <div class="metric"><span>Assigned an E1-E5 theme</span><strong id="classifiedMetric">0%</strong></div>
-          <div class="metric"><span>No category match</span><strong id="unmatchedMetric">0</strong></div>
-          <div class="metric"><span>Needs a decision</span><strong id="reviewMetric">0</strong></div>
+          <div class="metric"><span>Purchases reviewed</span><strong id="rowsMetric">0</strong></div>
+          <div class="metric"><span>Total value reviewed</span><strong id="amountMetric">0</strong></div>
+          <div class="metric"><span>Linked to an environmental topic</span><strong id="classifiedMetric">0%</strong></div>
+          <div class="metric"><span>Outside environmental scope</span><strong id="noneMetric">0</strong></div>
+          <div class="metric"><span>Not yet categorised</span><strong id="unmatchedMetric">0</strong></div>
+          <div class="metric"><span>Needs a human check</span><strong id="reviewMetric">0</strong></div>
         </div>
 
         <section class="priority-panel" aria-labelledby="priorityHeading">
-          <span class="panel-kicker">Where to start</span>
+          <span class="panel-kicker">What to do next</span>
           <h2 id="priorityHeading">Review the mapping gaps first</h2>
           <p id="priorityText"></p>
+          <p class="priority-note"><strong>What this means:</strong> the tool organises purchases into practical environmental topics. It does not measure environmental impact or judge a purchase as good or bad.</p>
         </section>
 
         <div class="two-column">
           <section class="panel">
-            <h2>Net amount by primary ESRS theme</h2>
+            <h2>Where spending may relate to the environment</h2>
+            <p class="section-note">This is a first organisation of spending, not an impact score.</p>
             <div id="themeBars" class="bars"></div>
           </section>
           <section class="panel">
-            <h2>Confidence in the current classifications</h2>
+            <h2>How sure are the suggested links?</h2>
+            <p class="section-note">“Needs review” means a person should confirm the category before using it.</p>
             <div id="confidenceBars" class="bars"></div>
           </section>
         </div>
 
         <section class="panel">
-          <h2>Primary-theme subcategories</h2>
-          <p class="section-note">A subcategory is shown only when it belongs to the row's assigned E1-E5 theme. Related cross-theme topics are retained in the exported file.</p>
+          <h2>More detailed environmental topics</h2>
+          <p class="section-note">A detailed topic is shown only when it belongs to the main environmental topic assigned to the purchase.</p>
           <div id="subcategoryBars" class="bars"></div>
         </section>
 
         <div class="two-column">
           <section class="panel">
-            <h2>Topics that need more context</h2>
-            <p class="section-note">These are questions to resolve before treating a broad spending category as an environmental outcome.</p>
+            <h2>Information that would help</h2>
+            <p class="section-note">These are the details that would make a broad category more meaningful.</p>
             <div id="guidanceBars" class="bars"></div>
           </section>
           <section class="panel">
-            <h2>Sample rows needing a decision</h2>
-            <p class="section-note">Unmatched rows and keyword suggestions should be checked against the category hierarchy and invoice description.</p>
+            <h2>Examples that need a human check</h2>
+            <p class="section-note">These are purchases that are not yet categorised or need a person to confirm the suggested link.</p>
             <div class="table-wrap">
               <table>
                 <thead>
-                  <tr><th>ESRS</th><th>Category</th><th>Check area</th><th>Amount</th></tr>
+                  <tr><th>Environmental topic</th><th>Purchasing category</th><th>What to check</th><th>Value</th></tr>
                 </thead>
                 <tbody id="reviewRows"></tbody>
               </table>
@@ -138,10 +141,10 @@
         </div>
 
         <section class="panel">
-          <h2>Top Categories</h2>
+          <h2>Largest groups of spending</h2>
           <table>
             <thead>
-              <tr><th>ESRS</th><th>ESRS subcategory</th><th>Category</th><th>Rows</th><th>Amount</th></tr>
+              <tr><th>Environmental topic</th><th>More detail</th><th>Purchasing category</th><th>Purchases</th><th>Value</th></tr>
             </thead>
             <tbody id="categoryRows"></tbody>
           </table>
