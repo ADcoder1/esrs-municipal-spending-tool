@@ -23,7 +23,7 @@ analyzeButton.addEventListener("click", async () => {
     const mappingSource = mappingInput.files[0]
       ? mappingInput.files[0].name
       : useBuiltInMappingInput.checked
-        ? "built-in demo mapping"
+        ? "built-in Helsingborg mapping"
         : "no mapping";
 
     runAnalysis(invoiceRows, mappingRows, mappingSource);
@@ -37,14 +37,14 @@ sampleButton.addEventListener("click", async () => {
     setStatus("Loading synthetic sample data...");
     const [invoiceResponse, mappingResponse] = await Promise.all([
       fetch("demo/sample_invoices.csv"),
-      fetch("demo/sample_mapping.csv"),
+      fetch("demo/helsingborg_esrs_mapping_v2.csv"),
     ]);
     if (!invoiceResponse.ok || !mappingResponse.ok) {
       throw new Error("Could not load sample data.");
     }
     const invoiceRows = rowsFromText(await invoiceResponse.text());
     const mappingRows = rowsFromText(await mappingResponse.text());
-    runAnalysis(invoiceRows, mappingRows, "built-in demo mapping");
+    runAnalysis(invoiceRows, mappingRows, "built-in Helsingborg mapping");
   } catch (error) {
     setStatus(error.message, true);
   }
@@ -68,11 +68,11 @@ async function loadMappingRows() {
     return readTableFile(mappingInput.files[0]);
   }
   if (!useBuiltInMappingInput.checked) {
-    throw new Error("Upload a category-to-ESRS mapping file, or enable the built-in demo mapping.");
+    throw new Error("Upload a category-to-ESRS mapping file, or enable the built-in Helsingborg mapping.");
   }
-  const response = await fetch("demo/sample_mapping.csv");
+  const response = await fetch("demo/helsingborg_esrs_mapping_v2.csv");
   if (!response.ok) {
-    throw new Error("Could not load the built-in demo mapping.");
+    throw new Error("Could not load the built-in Helsingborg mapping.");
   }
   return rowsFromText(await response.text());
 }
@@ -99,12 +99,20 @@ function render(rows, mappingCount) {
   const amounts = {};
   const confidence = {};
   const category = {};
+  const guidance = {};
   rows.forEach((row) => {
     const code = row["ESRS Primary"];
     const amount = parseNumber(row["ESRS Amount"]);
     counts[code] = (counts[code] || 0) + 1;
     amounts[code] = (amounts[code] || 0) + amount;
     confidence[row["ESRS Confidence"]] = (confidence[row["ESRS Confidence"]] || 0) + 1;
+    String(row["ESRS Context Tags"] || "")
+      .split(";")
+      .map((tag) => tag.trim())
+      .filter(Boolean)
+      .forEach((tag) => {
+        guidance[tag] = (guidance[tag] || 0) + 1;
+      });
     const cat = bestCategory(row);
     const key = `${code}||${cat}`;
     category[key] = category[key] || { code, cat, rows: 0, amount: 0 };
@@ -117,9 +125,11 @@ function render(rows, mappingCount) {
   document.querySelector("#mappingMetric").textContent = mappingCount.toLocaleString();
   document.querySelector("#classifiedMetric").textContent = `${Math.round((classified / Math.max(rows.length, 1)) * 100)}%`;
   document.querySelector("#noneMetric").textContent = (counts.None || 0).toLocaleString();
+  document.querySelector("#reviewMetric").textContent = rows.filter((row) => row["ESRS Review Focus"]).length.toLocaleString();
 
   renderBars("#themeBars", Object.entries(amounts).map(([code, value]) => ({ label: `${code} · ${ESRS_LABELS[code] || ""}`, value })), formatNumber);
   renderBars("#confidenceBars", Object.entries(confidence).map(([label, value]) => ({ label, value })), (value) => value.toLocaleString());
+  renderBars("#guidanceBars", Object.entries(guidance).map(([label, value]) => ({ label, value })), (value) => value.toLocaleString());
 
   const categoryRows = Object.values(category).sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount)).slice(0, 12);
   const body = document.querySelector("#categoryRows");
@@ -129,6 +139,17 @@ function render(rows, mappingCount) {
     tr.innerHTML = `<td>${escapeHtml(row.code)}</td><td>${escapeHtml(row.cat)}</td><td>${row.rows.toLocaleString()}</td><td>${formatNumber(row.amount)}</td>`;
     body.appendChild(tr);
   });
+
+  const reviewBody = document.querySelector("#reviewRows");
+  reviewBody.innerHTML = "";
+  rows
+    .filter((row) => row["ESRS Review Focus"])
+    .slice(0, 25)
+    .forEach((row) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${escapeHtml(row["ESRS Primary"])}</td><td>${escapeHtml(bestCategory(row))}</td><td>${escapeHtml(row["ESRS Review Focus"])}</td><td>${formatNumber(parseNumber(row["ESRS Amount"]))}</td>`;
+      reviewBody.appendChild(tr);
+    });
 }
 
 function renderBars(selector, rows, formatter) {

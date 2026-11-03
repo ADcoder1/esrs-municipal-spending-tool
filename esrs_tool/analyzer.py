@@ -55,6 +55,8 @@ def analyze(
                 "ESRS Matched Value",
                 "ESRS Amount",
                 "ESRS Comment",
+                "ESRS Review Focus",
+                "ESRS Context Tags",
             ],
         )
         writer.writeheader()
@@ -62,6 +64,7 @@ def analyze(
     row_count = 0
     total_amount = 0.0
     review_count = 0
+    context_prompt_count = 0
     amount_by_esrs = defaultdict(float)
     count_by_esrs = Counter()
     confidence_counts = Counter()
@@ -105,6 +108,8 @@ def analyze(
                     "method": classification.method,
                     "matched": classification.matched_value,
                     "comment": classification.comment,
+                    "review_focus": " | ".join(classification.review_focus),
+                    "context_tags": "; ".join(classification.context_tags),
                 },
             )
 
@@ -114,6 +119,8 @@ def analyze(
 
             for caution in _caution_flags(row, classification):
                 caution_counts[caution] += 1
+            if classification.review_focus:
+                context_prompt_count += 1
             if primary == "E1":
                 climate_split[_climate_subtheme(row)] += 1
 
@@ -135,6 +142,8 @@ def analyze(
                         "ESRS Matched Value": classification.matched_value,
                         "ESRS Amount": f"{amount:.2f}",
                         "ESRS Comment": classification.comment,
+                        "ESRS Review Focus": " | ".join(classification.review_focus),
+                        "ESRS Context Tags": "; ".join(classification.context_tags),
                     }
                 )
                 writer.writerow(export_row)
@@ -187,6 +196,7 @@ def analyze(
         "unmatched_rows": count_by_esrs.get("Unmatched", 0),
         "none_rows": count_by_esrs.get("None", 0),
         "review_count": review_count,
+        "context_prompt_count": context_prompt_count,
         "amount_by_esrs": _series(amount_by_esrs),
         "count_by_esrs": _series(count_by_esrs),
         "confidence_counts": dict(confidence_counts),
@@ -256,23 +266,15 @@ def _best_category(row: Dict[str, str]) -> str:
 
 def _needs_review(classification) -> bool:
     confidence = _confidence_bucket(classification.confidence)
-    return confidence == "Needs review" or classification.primary == "Unmatched" or classification.method.startswith("heuristic")
+    return (
+        confidence == "Needs review"
+        or classification.primary == "Unmatched"
+        or classification.method.startswith("heuristic")
+    )
 
 
 def _caution_flags(row: Dict[str, str], classification) -> List[str]:
-    text = normalize_key(" ".join(str(value) for value in row.values()))
-    flags: List[str] = []
-    if classification.primary == "E4" and any(term in text for term in ["green", "gronyta", "park", "vaxt", "växt"]):
-        flags.append("Green space needs biodiversity review")
-    if classification.primary == "E5" and any(term in text for term in ["avfall", "waste", "recycling", "aterbruk"]):
-        flags.append("Circular spend may need funding-source review")
-    if any(term in text for term in ["bygg", "construction", "asfalt", "infrastruktur", "neighbourhood", "stadsdel"]):
-        flags.append("Construction spend may need net-impact review")
-    if classification.primary == "Unmatched":
-        flags.append("No ESRS lens assigned")
-    if classification.primary == "None":
-        flags.append("Intentionally outside E1-E5")
-    return flags
+    return list(classification.context_tags)
 
 
 def _climate_subtheme(row: Dict[str, str]) -> str:
@@ -317,6 +319,8 @@ def _append_sample(samples: List[Dict[str, object]], row: Dict[str, str], classi
             "supplier": row.get("Leverantörsnamn", ""),
             "text": row.get("Fakturatext", ""),
             "matched": classification.matched_value,
+            "review_focus": " | ".join(classification.review_focus),
+            "context_tags": "; ".join(classification.context_tags),
         }
     )
 
@@ -342,6 +346,8 @@ def _write_category_export(
                 "Method",
                 "Matched Value",
                 "Comment",
+                "Review Focus",
+                "Context Tags",
                 "City Feedback",
             ],
         )
@@ -360,6 +366,8 @@ def _write_category_export(
                     "Method": meta.get("method", ""),
                     "Matched Value": meta.get("matched", ""),
                     "Comment": meta.get("comment", ""),
+                    "Review Focus": meta.get("review_focus", ""),
+                    "Context Tags": meta.get("context_tags", ""),
                     "City Feedback": "",
                 }
             )
@@ -388,4 +396,5 @@ def _methodology_notes() -> List[str]:
         "ESRS E1-E5 are analytical lenses, not formal reporting categories.",
         "None is a valid outcome for spending that is not environmentally relevant by default.",
         "Uncertainty is surfaced through confidence and review flags instead of forced precision.",
+        "Context prompts identify the additional evidence needed for broad categories such as construction, transport, food, chemicals and green space.",
     ]

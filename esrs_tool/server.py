@@ -100,7 +100,7 @@ class EsrsHandler(BaseHTTPRequestHandler):
                     if _truthy(_form_value(form, "use_default_mapping")):
                         mapping_path = defaults["mapping_path"]
                     else:
-                        raise ValueError("Choose an ESRS mapping CSV or XLSX file.")
+                        raise ValueError("Choose a category matching CSV or XLSX file.")
 
                 if not invoice_path.exists():
                     raise FileNotFoundError(f"Invoice file not found: {invoice_path}")

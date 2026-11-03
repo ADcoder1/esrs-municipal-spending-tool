@@ -49,7 +49,7 @@ const KNOWN_HEADER_KEYS = new Set([
   "forvaltning",
 ]);
 
-const MAX_BROWSER_XLSX_BYTES = 25 * 1024 * 1024;
+const MAX_BROWSER_XLSX_BYTES = 100 * 1024 * 1024;
 
 export {
   ESRS_LABELS,
@@ -71,7 +71,7 @@ export async function readTableFile(file) {
     if ((file?.size || 0) > MAX_BROWSER_XLSX_BYTES) {
       const sizeMb = ((file.size || 0) / (1024 * 1024)).toFixed(1);
       throw new Error(
-        `This Excel file is ${sizeMb} MB. The browser demo is for smaller files only. Use the local Python app for large municipal workbooks.`
+        `This Excel file is ${sizeMb} MB. Files over 100 MB can exceed browser memory. Please use the standalone desktop app for this workbook.`
       );
     }
     return rowsToObjects(await parseXlsxMatrix(await file.arrayBuffer()));
@@ -91,6 +91,9 @@ export function analyzeRows(invoiceRows, mappingRows) {
       "ESRS Secondary": classification.secondary,
       "ESRS Confidence": classification.confidence,
       "ESRS Method": classification.method,
+      "ESRS Comment": classification.comment || "",
+      "ESRS Review Focus": classification.reviewFocus.join(" | "),
+      "ESRS Context Tags": classification.contextTags.join("; "),
       "ESRS Amount": amount.toFixed(2),
     };
   });
@@ -416,6 +419,7 @@ function buildMapping(rows) {
         secondary,
         confidence,
         method: `mapping:${column}`,
+        comment: row["Comments (Helsingborg)"] || row.Comments || "",
       };
     });
   });
@@ -427,14 +431,12 @@ function classify(row, mapping) {
     const value = row[column];
     if (!value) continue;
     for (const candidate of candidateKeys(value)) {
-      if (mapping[candidate]) return mapping[candidate];
+      if (mapping[candidate]) return withContextGuidance(row, mapping[candidate]);
     }
   }
   const heuristic = heuristicClassification(row);
-  if (heuristic) {
-    return heuristic;
-  }
-  return { primary: "Unmatched", secondary: "", confidence: "Needs review", method: "unmatched" };
+  if (heuristic) return withContextGuidance(row, heuristic);
+  return withContextGuidance(row, { primary: "Unmatched", secondary: "", confidence: "Needs review", method: "unmatched" });
 }
 
 function heuristicClassification(row) {
@@ -467,10 +469,79 @@ function heuristicClassification(row) {
         secondary: "",
         confidence: "Needs review",
         method,
+        comment: "Suggested by keyword fallback; validate before use.",
       };
     }
   }
   return null;
+}
+
+function withContextGuidance(row, classification) {
+  const text = guidanceText(row);
+  const detailText = guidanceDetailText(row);
+  const reviewFocus = [];
+  const contextTags = [];
+  const add = (tag, prompt) => {
+    if (!contextTags.includes(tag)) contextTags.push(tag);
+    if (!reviewFocus.includes(prompt)) reviewFocus.push(prompt);
+  };
+
+  const construction = containsAny(text, ["bygg", "anlaggning", "entreprenad", "markentreprenor", "groundwork", "construction", "asfalt", "infrastruktur", "landskap", "landscape"]);
+  const transport = containsAny(text, ["fordon", "vehicle", "drivmedel", "fuel", "transport", "skolskjuts", "taxi", "buss", "bus", "fleet"]);
+  const freight = containsAny(text, ["frakt", "freight", "leverans", "delivery", "flytt"]);
+  const energy = containsAny(text, ["energi", "energy", "elektric", "electricity", "varme", "värme", "gasol", "heat pump", "varmepump", "ventilation"]);
+  const adaptation = containsAny(text, ["klimatanpass", "adaptation", "skyfall", "flood", "oversvam", "dagvatten", "stormwater", "resilien"]);
+  const food = containsAny(text, ["livsmedel", "food", "catering", "kott", "kött", "mejeri", "dairy", "fisk", "fish", "kitchen", "kok "]);
+  const chemicals = containsAny(text, ["kemisk", "chemical", "pfas", "bekampnings", "pesticide", "farligt avfall", "hazard", "sanering", "remediation"]);
+  const cleaning = containsAny(text, ["stadning", "städning", "stadmaterial", "städmaterial", "rengor", "rengör", "cleaning", "lokalvard"]);
+  const waterTerms = ["vatten", "water", "avlopp", "wastewater", "dagvatten", "stormwater", "spillvatten"];
+  const water = containsAny(detailText, waterTerms) || (
+    containsAny(text, waterTerms) && !containsAny(text, ["gasol", "heat pump", "varmepump", "varme", "värme", "energi", "energy"])
+  );
+  const marine = containsAny(text, ["marine", "marin", "coastal", "kust", "skaldjur", "seafood"]);
+  const greenSpace = containsAny(text, ["gronyta", "grönyta", "gronyteskotsel", "grönyteskötsel", "green space", "green area", "park", "biodiversity", "biologisk", "trad ", "träd ", "vaxt", "växt"]);
+  const circular = containsAny(text, ["avfall", "waste", "recycling", "atervinning", "återvinning", "aterbruk", "återbruk", "reuse"]);
+  const durableGoods = containsAny(text, ["mobler", "möbler", "inventar", "furniture", "vitvaror", "appliance", "textil", "textile"]);
+  const ict = containsAny(text, ["it och teknik", "hardvara", "hårdvara", "dator", "computer", "mobiltelefon", "server", "skrivare", "printer", "ict", "network", "nätverk"]);
+  const plastics = containsAny(text, ["plast", "plastic"]);
+
+  if (construction) add("Construction and land", "Check materials, reuse, energy performance, land use and biodiversity; the category alone does not show a positive or negative outcome.");
+  if (transport) add("Transport and fleet", "Check the purpose, mode, fuel or technology and available alternative; transport is not automatically lower impact.");
+  if (freight) add("Freight and deliveries", "Check whether demand can be reduced and record vehicle or fuel, load, route and delivery efficiency where available.");
+  if (energy) add("Energy and heating", "Check the energy source and whether the purchase concerns supply, efficiency or fossil combustion; interpret it in its system context.");
+  if (adaptation) add("Climate adaptation", "Record the resilience function, such as flood, stormwater, heat or climate-proof building measures.");
+  if (food) add("Food and catering", "Distinguish product groups and sourcing. Meat and dairy can have higher climate relevance than other food purchases.");
+  if (chemicals) add("Chemicals and hazardous substances", "Check the substance, hazard profile, likely release pathway and disposal route before treating it as a pollution issue.");
+  if (cleaning && !chemicals) add("Cleaning products and services", "Cleaning is not automatically a pollution issue. Check chemical content, concentration and disposal information.");
+  if (water) add("Water and wastewater", "Distinguish water quantity, water quality, wastewater or stormwater function, and any relevant infrastructure effects.");
+  if (marine) add("Marine and coastal resources", "Check whether there is a direct marine or coastal dependency or impact; local coastal expertise may be needed.");
+  if (greenSpace) add("Green space and biodiversity", "Check habitat outcome, native species, pesticide use and ecological management. Maintenance alone is not evidence of a biodiversity benefit.");
+  if (circular) add("Waste, reuse and circularity", "Check the treatment path and whether the purchase prevents waste, enables reuse or only manages disposal.");
+  if (durableGoods) add("Durability and repair", "Look for specification evidence on lifespan, warranty, repairability, spare parts, reuse or take-back arrangements.");
+  if (ict) add("ICT equipment", "Check device lifespan, repairability, reuse or take-back arrangements, and relevant energy use for hardware or networks.");
+  if (plastics) add("Plastics", "Consider both material use and pollution pathways. Plastic can cut across resource use and pollution rather than sit in only one theme.");
+  if (classification.primary === "Unmatched") add("Mapping gap", "Review the category hierarchy and invoice description, then add a municipal mapping entry if this is a recurring purchase.");
+  return { ...classification, reviewFocus, contextTags };
+}
+
+function containsAny(text, needles) {
+  return needles.some((needle) => text.includes(needle));
+}
+
+function guidanceText(row) {
+  const columns = [
+    "Inköpskategori 1", "Inköpskategori 2", "Inköpskategori 3",
+    "Nivå 1 (SV)", "Nivå 2 (SV)", "Nivå 3 (SV)",
+    "Nivå 1 (EN)", "Nivå 2 (EN)", "Nivå 3 (EN)",
+    "Procurement Category", "UNSPSC", "Konto", "Fakturatext", "Description",
+  ];
+  const values = columns.map((column) => row[column]).filter(Boolean);
+  return normalizeKey((values.length ? values : Object.values(row)).join(" "));
+}
+
+function guidanceDetailText(row) {
+  const columns = ["Inköpskategori 3", "Nivå 3 (SV)", "Nivå 3 (EN)", "Fakturatext", "Description"];
+  return normalizeKey(columns.map((column) => row[column]).filter(Boolean).join(" "));
 }
 
 function amountFor(row) {

@@ -92,7 +92,7 @@ def current_defaults() -> Dict[str, Path]:
             local_config,
             "ESRS_MAPPING_PATH",
             "mapping_path",
-            SAMPLE_DIR / "sample_mapping.csv",
+            SAMPLE_DIR / "helsingborg_esrs_mapping_v2.csv",
         ),
         "data_dir": _path_setting(
             local_config,

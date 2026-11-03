@@ -75,6 +75,8 @@ class Classification:
     method: str
     matched_value: str
     comment: str = ""
+    review_focus: Tuple[str, ...] = ()
+    context_tags: Tuple[str, ...] = ()
 
 
 def load_mapping(path: Path) -> Dict[str, MappingEntry]:
@@ -154,25 +156,31 @@ def classify_row(row: Dict[str, str], mapping: Dict[str, MappingEntry]) -> Class
         for candidate in _candidate_keys(value):
             entry = mapping.get(candidate)
             if entry:
-                return Classification(
-                    primary=entry.primary,
-                    secondary=entry.secondary,
-                    confidence=entry.confidence,
-                    method=f"mapping:{entry.source_column}",
-                    matched_value=entry.source_key,
-                    comment=entry.comment,
+                return _with_context_guidance(
+                    row,
+                    Classification(
+                        primary=entry.primary,
+                        secondary=entry.secondary,
+                        confidence=entry.confidence,
+                        method=f"mapping:{entry.source_column}",
+                        matched_value=entry.source_key,
+                        comment=entry.comment,
+                    ),
                 )
 
     heuristic = _heuristic_classification(row)
     if heuristic:
-        return heuristic
+        return _with_context_guidance(row, heuristic)
 
-    return Classification(
-        primary="Unmatched",
-        secondary="",
-        confidence="Needs review",
-        method="unmatched",
-        matched_value="",
+    return _with_context_guidance(
+        row,
+        Classification(
+            primary="Unmatched",
+            secondary="",
+            confidence="Needs review",
+            method="unmatched",
+            matched_value="",
+        ),
     )
 
 
@@ -284,6 +292,298 @@ def _heuristic_classification(row: Dict[str, str]) -> Optional[Classification]:
                 comment="Suggested by keyword fallback; validate before use.",
             )
     return None
+
+
+def _with_context_guidance(row: Dict[str, str], classification: Classification) -> Classification:
+    """Add review prompts without turning a category label into an impact claim.
+
+    The prompts reflect the municipal co-design feedback: broad spending labels are
+    useful first signals, but normally need purpose, specification or project-level
+    context before they can be interpreted.
+    """
+
+    text = _guidance_text(row)
+    detail_text = _guidance_detail_text(row)
+    focus: List[str] = []
+    tags: List[str] = []
+
+    def add(tag: str, prompt: str) -> None:
+        if tag not in tags:
+            tags.append(tag)
+        if prompt not in focus:
+            focus.append(prompt)
+
+    is_construction = _contains_any(
+        text,
+        (
+            "bygg",
+            "anlaggning",
+            "entreprenad",
+            "markentreprenor",
+            "groundwork",
+            "construction",
+            "asfalt",
+            "infrastruktur",
+            "landskap",
+            "landscape",
+        ),
+    )
+    is_transport = _contains_any(
+        text,
+        (
+            "fordon",
+            "vehicle",
+            "drivmedel",
+            "fuel",
+            "transport",
+            "skolskjuts",
+            "taxi",
+            "buss",
+            "bus",
+            "fleet",
+        ),
+    )
+    is_freight = _contains_any(text, ("frakt", "freight", "leverans", "delivery", "flytt"))
+    is_energy = _contains_any(
+        text,
+        (
+            "energi",
+            "energy",
+            "elektric",
+            "electricity",
+            "varme",
+            "värme",
+            "gasol",
+            "heat pump",
+            "varmepump",
+            "ventilation",
+        ),
+    )
+    is_adaptation = _contains_any(
+        text,
+        (
+            "klimatanpass",
+            "adaptation",
+            "skyfall",
+            "flood",
+            "oversvam",
+            "dagvatten",
+            "stormwater",
+            "resilien",
+        ),
+    )
+    is_food = _contains_any(
+        text,
+        (
+            "livsmedel",
+            "food",
+            "catering",
+            "kott",
+            "kött",
+            "mejeri",
+            "dairy",
+            "fisk",
+            "fish",
+            "kitchen",
+            "kok ",
+        ),
+    )
+    is_chemicals = _contains_any(
+        text,
+        (
+            "kemisk",
+            "chemical",
+            "pfas",
+            "bekampnings",
+            "pesticide",
+            "farligt avfall",
+            "hazard",
+            "sanering",
+            "remediation",
+        ),
+    )
+    is_cleaning = _contains_any(text, ("stadning", "städning", "stadmaterial", "städmaterial", "rengor", "rengör", "cleaning", "lokalvard"))
+    water_terms = ("vatten", "water", "avlopp", "wastewater", "dagvatten", "stormwater", "spillvatten")
+    is_water = _contains_any(detail_text, water_terms) or (
+        _contains_any(text, water_terms)
+        and not _contains_any(text, ("gasol", "heat pump", "varmepump", "varme", "värme", "energi", "energy"))
+    )
+    is_marine = _contains_any(text, ("marine", "marin", "coastal", "kust", "skaldjur", "seafood"))
+    is_green_space = _contains_any(
+        text,
+        (
+            "gronyta",
+            "grönyta",
+            "gronyteskotsel",
+            "grönyteskötsel",
+            "green space",
+            "green area",
+            "park",
+            "biodiversity",
+            "biologisk",
+            "trad ",
+            "träd ",
+            "vaxt",
+            "växt",
+        ),
+    )
+    is_circular = _contains_any(
+        text,
+        ("avfall", "waste", "recycling", "atervinning", "återvinning", "aterbruk", "återbruk", "reuse"),
+    )
+    is_durable_goods = _contains_any(
+        text,
+        (
+            "mobler",
+            "möbler",
+            "inventar",
+            "furniture",
+            "vitvaror",
+            "appliance",
+            "textil",
+            "textile",
+        ),
+    )
+    is_ict = _contains_any(
+        text,
+        (
+            "it och teknik",
+            "hardvara",
+            "hårdvara",
+            "dator",
+            "computer",
+            "mobiltelefon",
+            "server",
+            "skrivare",
+            "printer",
+            "ict",
+            "network",
+            "nätverk",
+        ),
+    )
+    is_plastics = _contains_any(text, ("plast", "plastic"))
+
+    if is_construction:
+        add(
+            "Construction and land",
+            "Check materials, reuse, energy performance, land use and biodiversity; the category alone does not show a positive or negative outcome.",
+        )
+    if is_transport:
+        add(
+            "Transport and fleet",
+            "Check the purpose, mode, fuel or technology and available alternative; transport is not automatically lower impact.",
+        )
+    if is_freight:
+        add(
+            "Freight and deliveries",
+            "Check whether demand can be reduced and record vehicle or fuel, load, route and delivery efficiency where available.",
+        )
+    if is_energy:
+        add(
+            "Energy and heating",
+            "Check the energy source and whether the purchase concerns supply, efficiency or fossil combustion; interpret it in its system context.",
+        )
+    if is_adaptation:
+        add(
+            "Climate adaptation",
+            "Record the resilience function, such as flood, stormwater, heat or climate-proof building measures.",
+        )
+    if is_food:
+        add(
+            "Food and catering",
+            "Distinguish product groups and sourcing. Meat and dairy can have higher climate relevance than other food purchases.",
+        )
+    if is_chemicals:
+        add(
+            "Chemicals and hazardous substances",
+            "Check the substance, hazard profile, likely release pathway and disposal route before treating it as a pollution issue.",
+        )
+    if is_cleaning and not is_chemicals:
+        add(
+            "Cleaning products and services",
+            "Cleaning is not automatically a pollution issue. Check chemical content, concentration and disposal information.",
+        )
+    if is_water:
+        add(
+            "Water and wastewater",
+            "Distinguish water quantity, water quality, wastewater or stormwater function, and any relevant infrastructure effects.",
+        )
+    if is_marine:
+        add(
+            "Marine and coastal resources",
+            "Check whether there is a direct marine or coastal dependency or impact; local coastal expertise may be needed.",
+        )
+    if is_green_space:
+        add(
+            "Green space and biodiversity",
+            "Check habitat outcome, native species, pesticide use and ecological management. Maintenance alone is not evidence of a biodiversity benefit.",
+        )
+    if is_circular:
+        add(
+            "Waste, reuse and circularity",
+            "Check the treatment path and whether the purchase prevents waste, enables reuse or only manages disposal.",
+        )
+    if is_durable_goods:
+        add(
+            "Durability and repair",
+            "Look for specification evidence on lifespan, warranty, repairability, spare parts, reuse or take-back arrangements.",
+        )
+    if is_ict:
+        add(
+            "ICT equipment",
+            "Check device lifespan, repairability, reuse or take-back arrangements, and relevant energy use for hardware or networks.",
+        )
+    if is_plastics:
+        add(
+            "Plastics",
+            "Consider both material use and pollution pathways. Plastic can cut across resource use and pollution rather than sit in only one theme.",
+        )
+    if classification.primary == "Unmatched":
+        add(
+            "Mapping gap",
+            "Review the category hierarchy and invoice description, then add a municipal mapping entry if this is a recurring purchase.",
+        )
+    classification.review_focus = tuple(focus)
+    classification.context_tags = tuple(tags)
+    return classification
+
+
+def _contains_any(text: str, needles: Sequence[str]) -> bool:
+    return any(needle in text for needle in needles)
+
+
+def _guidance_text(row: Dict[str, str]) -> str:
+    """Use categories and descriptions, not department names, for context prompts."""
+
+    columns = (
+        "Inköpskategori 1",
+        "Inköpskategori 2",
+        "Inköpskategori 3",
+        "Nivå 1 (SV)",
+        "Nivå 2 (SV)",
+        "Nivå 3 (SV)",
+        "Nivå 1 (EN)",
+        "Nivå 2 (EN)",
+        "Nivå 3 (EN)",
+        "Procurement Category",
+        "UNSPSC",
+        "Konto",
+        "Fakturatext",
+        "Description",
+    )
+    values = [str(row.get(column, "")) for column in columns if row.get(column, "")]
+    return normalize_key(" ".join(values or [str(value) for value in row.values()]))
+
+
+def _guidance_detail_text(row: Dict[str, str]) -> str:
+    columns = (
+        "Inköpskategori 3",
+        "Nivå 3 (SV)",
+        "Nivå 3 (EN)",
+        "Fakturatext",
+        "Description",
+    )
+    return normalize_key(" ".join(str(row.get(column, "")) for column in columns if row.get(column, "")))
 
 
 def _find_header_row(rows: Sequence[Sequence[str]]) -> int:

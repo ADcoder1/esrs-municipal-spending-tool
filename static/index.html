@@ -195,11 +195,12 @@
           <div class="metric"><span>Spend in this run</span><strong id="amountMetric">0</strong></div>
           <div class="metric"><span>Mapped to E1-E5</span><strong id="classifiedMetric">0%</strong></div>
           <div class="metric"><span>Rows needing review</span><strong id="reviewMetric">0</strong></div>
+          <div class="metric"><span>Rows with context prompts</span><strong id="contextMetric">0</strong></div>
         </div>
 
         <nav class="tabs" aria-label="Results tabs">
           <button class="tab active" data-tab="overview">Overview</button>
-          <button class="tab" data-tab="city">Discussion points</button>
+          <button class="tab" data-tab="city">Review guidance</button>
           <button class="tab" data-tab="categories">Categories</button>
           <button class="tab" data-tab="gaps">Missing information</button>
           <button class="tab" data-tab="review">Rows to review</button>
@@ -221,7 +222,7 @@
         <section class="tab-panel" id="city">
           <div class="two-column">
             <div class="panel">
-              <h2>Questions To Discuss With The City</h2>
+              <h2>Context To Check Before Interpreting Results</h2>
               <div id="cautionBars" class="bars"></div>
             </div>
             <div class="panel">
@@ -262,7 +263,7 @@
             <div class="table-wrap">
               <table>
                 <thead>
-                  <tr><th>ESRS</th><th>Confidence</th><th>Category</th><th>Department</th><th>Supplier</th><th>Amount</th></tr>
+                  <tr><th>ESRS</th><th>Confidence</th><th>Category</th><th>Review focus</th><th>Department</th><th>Supplier</th><th>Amount</th></tr>
                 </thead>
                 <tbody id="reviewRows"></tbody>
               </table>

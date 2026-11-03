@@ -4,28 +4,26 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>ESRS Municipal Spending Tool</title>
-    <!-- GitHub Pages refresh marker: 2026-05-06 -->
     <link rel="stylesheet" href="pages.css" />
   </head>
   <body>
     <header>
       <h1>ESRS Municipal Spending Tool</h1>
       <p>
-        Public browser demo for exploring ESRS classification logic. The main
-        municipal workflow lives in the local analysis app. This public page
-        uses synthetic sample data. If you upload local CSV or Excel files,
-        they are processed in your browser and are not sent to a server.
+        A browser-based workspace for reviewing municipal spending against ESRS
+        environmental themes. Upload a CSV or Excel file and it is processed in
+        your browser: nothing is sent to a server.
       </p>
     </header>
 
     <main>
       <section class="panel notice">
-        <strong>Prototype scope:</strong>
-        This demo is for exploring classification logic and review workflows. It
-        does not calculate environmental performance or produce formal ESRS
-        disclosures. Excel support reads the first worksheet in the uploaded
-        file. Very large Excel workbooks should be run in the local analysis
-        app instead.
+        <strong>What this tool does:</strong>
+        It provides a transparent first-pass classification and highlights the
+        contextual checks needed for broad categories such as construction,
+        transport, food and green space. It does not calculate environmental
+        performance or produce formal ESRS disclosures. Excel support reads the
+        first worksheet in the uploaded file.
       </section>
 
       <section class="panel">
@@ -34,20 +32,20 @@
           <label>
             <span>Invoice / procurement file</span>
             <input id="invoiceFile" type="file" accept=".csv,.xlsx" />
-            <small>Upload CSV or Excel (.xlsx). Large municipal Excel workbooks should be run in the local analysis app instead.</small>
+            <small>Upload CSV or Excel (.xlsx). The file stays in this browser during the review.</small>
           </label>
           <label>
-            <span>Optional category-to-ESRS mapping</span>
+            <span>Optional revised category-to-ESRS mapping</span>
             <input id="mappingFile" type="file" accept=".csv,.xlsx" />
             <small>
-              Only needed if you want to use your own reviewed mapping file.
-              Otherwise the built-in demo mapping will be used.
+              Upload this only when you have a revised mapping. Otherwise the built-in
+              Helsingborg validation mapping will be used.
             </small>
           </label>
         </div>
         <label class="check-control">
           <input id="useBuiltInMapping" type="checkbox" checked />
-          <span>Use built-in demo mapping when no mapping file is uploaded</span>
+          <span>Use built-in Helsingborg validation mapping when no mapping file is uploaded</span>
         </label>
         <div class="actions">
           <button id="sampleButton" class="secondary" type="button">Use Sample Data</button>
@@ -64,6 +62,7 @@
           <div class="metric"><span>Mapping Entries</span><strong id="mappingMetric">0</strong></div>
           <div class="metric"><span>Classified E1-E5</span><strong id="classifiedMetric">0%</strong></div>
           <div class="metric"><span>None Rows</span><strong id="noneMetric">0</strong></div>
+          <div class="metric"><span>Rows With Review Prompts</span><strong id="reviewMetric">0</strong></div>
         </div>
 
         <div class="two-column">
@@ -74,6 +73,25 @@
           <section class="panel">
             <h2>Rows by Confidence</h2>
             <div id="confidenceBars" class="bars"></div>
+          </section>
+        </div>
+
+        <div class="two-column">
+          <section class="panel">
+            <h2>Context To Check Before Interpreting Results</h2>
+            <p class="section-note">These prompts are not impact scores. They show the additional information that would make a broad category more meaningful.</p>
+            <div id="guidanceBars" class="bars"></div>
+          </section>
+          <section class="panel">
+            <h2>Rows With Review Prompts</h2>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>ESRS</th><th>Category</th><th>Review focus</th><th>Amount</th></tr>
+                </thead>
+                <tbody id="reviewRows"></tbody>
+              </table>
+            </div>
           </section>
         </div>
 

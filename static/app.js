@@ -106,6 +106,7 @@ function renderResults(payload) {
   document.querySelector("#amountMetric").textContent = formatMoney(payload.total_amount);
   document.querySelector("#classifiedMetric").textContent = `${classifiedPercent}%`;
   document.querySelector("#reviewMetric").textContent = formatNumber(payload.review_count);
+  document.querySelector("#contextMetric").textContent = formatNumber(payload.context_prompt_count);
 
   renderBars("#amountBars", payload.amount_by_esrs, "value", formatMoney, true);
   renderBars("#confidenceBars", counterToSeries(payload.confidence_counts), "value", formatNumber, false);
@@ -174,6 +175,7 @@ function renderReviewRows(rows) {
       <td>${escapeHtml(row.primary)}<br><small>${escapeHtml(row.label)}</small></td>
       <td>${escapeHtml(row.confidence)}</td>
       <td>${escapeHtml(row.category)}</td>
+      <td>${escapeHtml(row.review_focus || "Check the matching category and invoice description.")}</td>
       <td>${escapeHtml(row.department || row.unit)}</td>
       <td>${escapeHtml(row.supplier)}</td>
       <td class="amount">${formatMoney(row.amount)}</td>

@@ -64,7 +64,7 @@ class SettingsDialog(tk.Toplevel):
         defaults = config.load_local_config()
         rows = [
             ("Invoice / procurement file", "invoice_path", False, [("Spreadsheet files", "*.xlsx *.xls *.csv"), ("All files", "*.*")]),
-            ("ESRS mapping file", "mapping_path", False, [("Spreadsheet files", "*.xlsx *.xls *.csv"), ("All files", "*.*")]),
+            ("Category matching file", "mapping_path", False, [("Spreadsheet files", "*.xlsx *.xls *.csv"), ("All files", "*.*")]),
             ("Data folder", "data_dir", True, []),
             ("Meeting notes", "meeting_notes_path", False, [("All files", "*.*")]),
             ("Gap analysis", "gap_report_path", False, [("All files", "*.*")]),

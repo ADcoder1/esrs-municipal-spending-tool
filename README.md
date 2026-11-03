@@ -63,9 +63,9 @@ https://adcoder1.github.io/esrs-municipal-spending-tool/
 
 The public demo uses synthetic sample data and supports CSV and XLSX files
 directly in the browser. No data is uploaded to a server. If no separate
-mapping file is uploaded, the demo uses its built-in sample mapping. For
-private municipal datasets, large Excel workbooks, and the fuller review
-workflow, use the main local app.
+mapping file is uploaded, it uses the bundled Helsingborg validation mapping
+(V2), with 138 assigned category rows. For private municipal datasets, large
+Excel workbooks, and the fuller review workflow, use the main local app.
 
 ## Why This Exists
 
@@ -181,7 +181,8 @@ The collaborator's data stays on their own machine.
 - `setup_local_tool.py`: writes a local config through a setup flow
 - `esrs_tool/`: Python backend and XLSX/CSV parser
 - `static/`: main local browser UI
-- `samples/`: synthetic public sample data
+- `samples/`: synthetic public sample data and the bundled Helsingborg V2
+  validation mapping used as the local app's default
 - `docs/`: methodology, templates, and data policy
 - `docs/index.html`: browser-only public demo for GitHub Pages
 - `config.example.json`: public sample configuration
