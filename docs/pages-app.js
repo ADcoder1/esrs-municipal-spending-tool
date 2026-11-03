@@ -330,12 +330,12 @@ function renderPriority(unmatchedRows, unmatchedAmount, reviewRows, classifiedPe
   const text = document.querySelector("#priorityText");
   if (unmatchedRows) {
     heading.textContent = "Start with the purchases that are not yet categorised";
-    text.textContent = `${unmatchedRows.toLocaleString()} purchases could not be linked to an environmental topic. Together they represent ${formatValueInThousands(unmatchedAmount)} ('000). Check recurring purchasing categories first, then add them to your category guide. ${reviewRows.toLocaleString()} purchases also need a human check.`;
+    text.textContent = `${formatPurchaseCount(unmatchedRows)} could not be linked to an environmental topic. Together they represent ${formatValueInThousands(unmatchedAmount)} ('000). Check recurring purchasing categories first, then add them to your category guide. ${formatPurchaseCount(reviewRows)} also need a human check.`;
     return;
   }
   if (reviewRows) {
     heading.textContent = "Next, check the suggested links";
-    text.textContent = `${classifiedPercent}% of purchases were linked to an environmental topic. Focus on the ${reviewRows.toLocaleString()} purchases that need a human check before using the results in a discussion or decision.`;
+    text.textContent = `${classifiedPercent}% of purchases were linked to an environmental topic. Focus on the ${formatPurchaseCount(reviewRows)} that need a human check before using the results in a discussion or decision.`;
     return;
   }
   heading.textContent = "Your results are ready to explore";
@@ -350,6 +350,11 @@ function readableThemeLabel(code, label) {
 
 function formatValueInThousands(value) {
   return formatNumber((Number(value) || 0) / 1000);
+}
+
+function formatPurchaseCount(value) {
+  const count = Number(value) || 0;
+  return `${formatNumber(count)} ${count === 1 ? "purchase" : "purchases"}`;
 }
 
 function shortTopicLabel(value) {

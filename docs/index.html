@@ -95,20 +95,29 @@
       </section>
 
       <section id="results" class="hidden">
-        <div class="metric-grid">
-          <div class="metric"><span>Purchases reviewed</span><strong id="rowsMetric">0</strong></div>
-          <div class="metric"><span>Total value reviewed ('000)</span><strong id="amountMetric">0</strong></div>
-          <div class="metric"><span>Linked to an environmental topic</span><strong id="classifiedMetric">0%</strong></div>
-          <div class="metric"><span>Outside environmental scope</span><strong id="noneMetric">0</strong></div>
-          <div class="metric"><span>Not yet categorised</span><strong id="unmatchedMetric">0</strong></div>
-          <div class="metric"><span>Needs a human check</span><strong id="reviewMetric">0</strong></div>
-        </div>
-
         <section class="priority-panel" aria-labelledby="priorityHeading">
           <span class="panel-kicker">What to do next</span>
           <h2 id="priorityHeading">Review the mapping gaps first</h2>
           <p id="priorityText"></p>
           <p class="priority-note"><strong>What this means:</strong> the tool organises purchases into practical environmental topics. It does not measure environmental impact or judge a purchase as good or bad.</p>
+        </section>
+
+        <section class="metric-group" aria-labelledby="attentionHeading">
+          <h2 id="attentionHeading" class="metric-group-label">What needs attention</h2>
+          <div class="metric-grid metric-grid-primary">
+            <div class="metric metric-action"><span>Needs a human check</span><strong id="reviewMetric">0</strong></div>
+            <div class="metric metric-gap"><span>Not yet categorised</span><strong id="unmatchedMetric">0</strong></div>
+            <div class="metric metric-coverage"><span>Linked to an environmental topic</span><strong id="classifiedMetric">0%</strong></div>
+          </div>
+        </section>
+
+        <section class="metric-group" aria-labelledby="fileHeading">
+          <h2 id="fileHeading" class="metric-group-label">About this file</h2>
+          <div class="metric-grid metric-grid-secondary">
+            <div class="metric"><span>Purchases reviewed</span><strong id="rowsMetric">0</strong></div>
+            <div class="metric"><span>Total value reviewed ('000)</span><strong id="amountMetric">0</strong></div>
+            <div class="metric"><span>Outside environmental scope</span><strong id="noneMetric">0</strong></div>
+          </div>
         </section>
 
         <div class="two-column">

@@ -473,12 +473,39 @@ button svg,
 .metric-grid {
   display: grid;
   gap: 14px;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  margin: 22px 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+}
+
+.metric-group {
+  margin: 0 0 20px;
+}
+
+.metric-group-label {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+  margin: 0 0 9px;
+  text-transform: uppercase;
 }
 
 .metric {
   padding: 16px;
+}
+
+.metric-action {
+  background: #fffaf1;
+  border-color: #e6c785;
+}
+
+.metric-gap {
+  background: #fffdf6;
+  border-color: #ead8a9;
+}
+
+.metric-coverage {
+  background: #f2faf7;
+  border-color: #b9d9cd;
 }
 
 .metric strong {
