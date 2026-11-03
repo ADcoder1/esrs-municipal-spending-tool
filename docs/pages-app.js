@@ -101,11 +101,15 @@ function render(rows, mappingCount) {
   const category = {};
   const guidance = {};
   const subcategories = {};
+  let totalAmount = 0;
+  let unmatchedAmount = 0;
   rows.forEach((row) => {
     const code = row["ESRS Primary"];
     const amount = parseNumber(row["ESRS Amount"]);
+    totalAmount += amount;
     counts[code] = (counts[code] || 0) + 1;
     amounts[code] = (amounts[code] || 0) + amount;
+    if (code === "Unmatched") unmatchedAmount += amount;
     confidence[row["ESRS Confidence"]] = (confidence[row["ESRS Confidence"]] || 0) + 1;
     String(row["ESRS Context Tags"] || "")
       .split(";")
@@ -130,11 +134,15 @@ function render(rows, mappingCount) {
   });
 
   const classified = ["E1", "E2", "E3", "E4", "E5"].reduce((sum, code) => sum + (counts[code] || 0), 0);
+  const decisionRows = rows.filter(needsManualDecision);
+  const reviewRows = representativeDecisionRows(decisionRows);
+  const classifiedPercent = Math.round((classified / Math.max(rows.length, 1)) * 100);
   document.querySelector("#rowsMetric").textContent = rows.length.toLocaleString();
-  document.querySelector("#mappingMetric").textContent = mappingCount.toLocaleString();
-  document.querySelector("#classifiedMetric").textContent = `${Math.round((classified / Math.max(rows.length, 1)) * 100)}%`;
-  document.querySelector("#noneMetric").textContent = (counts.None || 0).toLocaleString();
-  document.querySelector("#reviewMetric").textContent = rows.filter((row) => row["ESRS Review Focus"]).length.toLocaleString();
+  document.querySelector("#amountMetric").textContent = formatNumber(totalAmount);
+  document.querySelector("#classifiedMetric").textContent = `${classifiedPercent}%`;
+  document.querySelector("#unmatchedMetric").textContent = (counts.Unmatched || 0).toLocaleString();
+  document.querySelector("#reviewMetric").textContent = decisionRows.length.toLocaleString();
+  renderPriority(counts.Unmatched || 0, unmatchedAmount, decisionRows.length, classifiedPercent);
 
   renderBars("#themeBars", Object.entries(amounts).map(([code, value]) => ({ label: `${code} · ${ESRS_LABELS[code] || ""}`, value })), formatNumber);
   renderBars("#confidenceBars", Object.entries(confidence).map(([label, value]) => ({ label, value })), (value) => value.toLocaleString());
@@ -146,20 +154,79 @@ function render(rows, mappingCount) {
   body.innerHTML = "";
   categoryRows.forEach((row) => {
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${escapeHtml(row.code)}</td><td>${escapeHtml(row.subcategory)}</td><td>${escapeHtml(row.cat)}</td><td>${row.rows.toLocaleString()}</td><td>${formatNumber(row.amount)}</td>`;
+    tr.innerHTML = `<td>${escapeHtml(row.code)}</td><td title="${escapeHtml(row.subcategory)}">${escapeHtml(shortTopicLabel(row.subcategory))}</td><td>${escapeHtml(row.cat)}</td><td>${row.rows.toLocaleString()}</td><td>${formatNumber(row.amount)}</td>`;
     body.appendChild(tr);
   });
 
   const reviewBody = document.querySelector("#reviewRows");
   reviewBody.innerHTML = "";
-  rows
-    .filter((row) => row["ESRS Review Focus"])
+  reviewRows
     .slice(0, 25)
     .forEach((row) => {
       const tr = document.createElement("tr");
-      tr.innerHTML = `<td>${escapeHtml(row["ESRS Primary"])}</td><td>${escapeHtml(bestCategory(row))}</td><td>${escapeHtml(row["ESRS Review Focus"])}</td><td>${formatNumber(parseNumber(row["ESRS Amount"]))}</td>`;
+      tr.innerHTML = `<td>${escapeHtml(row["ESRS Primary"])}</td><td>${escapeHtml(bestCategory(row))}</td><td title="${escapeHtml(row["ESRS Review Focus"] || "")}">${escapeHtml(row["ESRS Context Tags"] || "Confirm category and invoice description")}</td><td>${formatNumber(parseNumber(row["ESRS Amount"]))}</td>`;
       reviewBody.appendChild(tr);
     });
+}
+
+function needsManualDecision(row) {
+  return (
+    row["ESRS Primary"] === "Unmatched" ||
+    row["ESRS Confidence"] === "Needs review" ||
+    String(row["ESRS Method"] || "").startsWith("heuristic")
+  );
+}
+
+function representativeDecisionRows(rows) {
+  const seen = new Set();
+  return rows.filter((row) => Math.abs(parseNumber(row["ESRS Amount"])) > 0.005).filter((row) => {
+    const key = [
+      row["ESRS Primary"],
+      bestCategory(row),
+      row["Förvaltning"],
+      row["Leverantörsnamn"],
+      row["ESRS Method"],
+    ].join("||");
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function renderPriority(unmatchedRows, unmatchedAmount, reviewRows, classifiedPercent) {
+  const heading = document.querySelector("#priorityHeading");
+  const text = document.querySelector("#priorityText");
+  if (unmatchedRows) {
+    heading.textContent = "Review the mapping gaps first";
+    text.textContent = `${unmatchedRows.toLocaleString()} rows have no category match yet, representing ${formatNumber(unmatchedAmount)} in net input value. Resolve recurring gaps before using theme totals for decisions. ${reviewRows.toLocaleString()} rows also need a manual decision.`;
+    return;
+  }
+  heading.textContent = "Start with the rows that need a decision";
+  text.textContent = `${classifiedPercent}% of rows have an E1-E5 theme. There are no unmatched rows in this run; focus next on the ${reviewRows.toLocaleString()} rows marked for a manual decision.`;
+}
+
+function shortTopicLabel(value) {
+  const labels = {
+    "E1.1 Energy, heating and efficiency": "E1.1 Energy and heating",
+    "E1.2 Transport, fleet and mobility": "E1.2 Transport and fleet",
+    "E1.3 Freight and deliveries": "E1.3 Freight and deliveries",
+    "E1.4 Climate adaptation and resilience": "E1.4 Climate adaptation",
+    "E1.5 Food and catering": "E1.5 Food and catering",
+    "E1.6 Construction and built environment": "E1.6 Construction",
+    "E2.1 Chemicals, hazardous substances and remediation": "E2.1 Chemicals and hazardous substances",
+    "E2.2 Cleaning products and services": "E2.2 Cleaning",
+    "E2.3 Plastics and pollution pathways": "E2.3 Plastics",
+    "E3.1 Water supply and use": "E3.1 Water supply and use",
+    "E3.2 Wastewater, stormwater and water systems": "E3.2 Wastewater and stormwater",
+    "E3.3 Marine and coastal resources": "E3.3 Marine and coastal",
+    "E4.1 Green space and ecological management": "E4.1 Green space",
+    "E4.2 Land use and habitat": "E4.2 Land and habitat",
+    "E5.1 Waste prevention, reuse and recycling": "E5.1 Waste and reuse",
+    "E5.2 Durable goods, repair and take-back": "E5.2 Durable goods and repair",
+    "E5.3 ICT equipment and lifecycle": "E5.3 ICT lifecycle",
+    "E5.4 Materials and packaging": "E5.4 Materials and packaging",
+  };
+  return String(value || "").split(" | ").map((label) => labels[label] || label).join(" | ");
 }
 
 function renderBars(selector, rows, formatter) {

@@ -3,7 +3,7 @@ import time
 import uuid
 from collections import Counter, defaultdict
 from pathlib import Path
-from typing import Dict, List, Sequence
+from typing import Dict, List, Sequence, Set
 
 from .classifier import (
     AMOUNT_COLUMNS,
@@ -58,6 +58,7 @@ def analyze(
                 "ESRS Review Focus",
                 "ESRS Context Tags",
                 "ESRS Subcategories",
+                "ESRS Related Topics",
             ],
         )
         writer.writeheader()
@@ -79,6 +80,8 @@ def analyze(
     climate_split = Counter()
     review_rows: List[Dict[str, object]] = []
     unmatched_rows: List[Dict[str, object]] = []
+    review_sample_keys: Set[str] = set()
+    unmatched_sample_keys: Set[str] = set()
 
     try:
         for row_values in row_iter:
@@ -97,6 +100,7 @@ def analyze(
 
             category = _best_category(row)
             subcategories = " | ".join(classification.subcategories)
+            related_topics = " | ".join(classification.related_topics)
             category_key = f"{primary}||{subcategories}||{category or 'Unspecified'}"
             category_amounts[category_key] += amount
             category_counts[category_key] += 1
@@ -114,6 +118,7 @@ def analyze(
                     "review_focus": " | ".join(classification.review_focus),
                     "context_tags": "; ".join(classification.context_tags),
                     "subcategories": subcategories,
+                    "related_topics": related_topics,
                 },
             )
 
@@ -133,9 +138,9 @@ def analyze(
 
             if _needs_review(classification):
                 review_count += 1
-                _append_sample(review_rows, row, classification, amount)
+                _append_sample(review_rows, row, classification, amount, review_sample_keys)
             if primary == "Unmatched":
-                _append_sample(unmatched_rows, row, classification, amount)
+                _append_sample(unmatched_rows, row, classification, amount, unmatched_sample_keys)
 
             if writer:
                 export_row = dict(row)
@@ -152,6 +157,7 @@ def analyze(
                         "ESRS Review Focus": " | ".join(classification.review_focus),
                         "ESRS Context Tags": "; ".join(classification.context_tags),
                         "ESRS Subcategories": subcategories,
+                        "ESRS Related Topics": related_topics,
                     }
                 )
                 writer.writerow(export_row)
@@ -203,6 +209,7 @@ def analyze(
         "total_amount": total_amount,
         "classified_rows": sum(count for code, count in count_by_esrs.items() if code in {"E1", "E2", "E3", "E4", "E5"}),
         "unmatched_rows": count_by_esrs.get("Unmatched", 0),
+        "unmatched_amount": amount_by_esrs.get("Unmatched", 0),
         "none_rows": count_by_esrs.get("None", 0),
         "review_count": review_count,
         "context_prompt_count": context_prompt_count,
@@ -313,9 +320,30 @@ def _confidence_bucket(value: str) -> str:
     return value or "Unspecified"
 
 
-def _append_sample(samples: List[Dict[str, object]], row: Dict[str, str], classification, amount: float) -> None:
+def _append_sample(
+    samples: List[Dict[str, object]],
+    row: Dict[str, str],
+    classification,
+    amount: float,
+    sample_keys: Set[str],
+) -> None:
+    if abs(amount) < 0.005:
+        return
+    category = _best_category(row)
+    sample_key = "||".join(
+        [
+            classification.primary,
+            category,
+            row.get("Förvaltning", ""),
+            row.get("Leverantörsnamn", ""),
+            classification.method,
+        ]
+    )
+    if sample_key in sample_keys:
+        return
     if len(samples) >= 50:
         return
+    sample_keys.add(sample_key)
     samples.append(
         {
             "primary": classification.primary,
@@ -323,7 +351,7 @@ def _append_sample(samples: List[Dict[str, object]], row: Dict[str, str], classi
             "confidence": classification.confidence,
             "method": classification.method,
             "amount": amount,
-            "category": _best_category(row),
+            "category": category,
             "department": row.get("Förvaltning", ""),
             "unit": row.get("Avdelning/Område", ""),
             "supplier": row.get("Leverantörsnamn", ""),
@@ -332,6 +360,7 @@ def _append_sample(samples: List[Dict[str, object]], row: Dict[str, str], classi
             "review_focus": " | ".join(classification.review_focus),
             "context_tags": "; ".join(classification.context_tags),
             "subcategories": " | ".join(classification.subcategories),
+            "related_topics": " | ".join(classification.related_topics),
         }
     )
 
@@ -360,6 +389,7 @@ def _write_category_export(
                 "Review Focus",
                 "Context Tags",
                 "ESRS Subcategories",
+                "ESRS Related Topics",
                 "City Feedback",
             ],
         )
@@ -381,6 +411,7 @@ def _write_category_export(
                     "Review Focus": meta.get("review_focus", ""),
                     "Context Tags": meta.get("context_tags", ""),
                     "ESRS Subcategories": meta.get("subcategories", ""),
+                    "ESRS Related Topics": meta.get("related_topics", ""),
                     "City Feedback": "",
                 }
             )

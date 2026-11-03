@@ -58,42 +58,49 @@
 
       <section id="results" class="hidden">
         <div class="metric-grid">
-          <div class="metric"><span>Rows</span><strong id="rowsMetric">0</strong></div>
-          <div class="metric"><span>Mapping Entries</span><strong id="mappingMetric">0</strong></div>
-          <div class="metric"><span>Classified E1-E5</span><strong id="classifiedMetric">0%</strong></div>
-          <div class="metric"><span>None Rows</span><strong id="noneMetric">0</strong></div>
-          <div class="metric"><span>Rows With Review Prompts</span><strong id="reviewMetric">0</strong></div>
+          <div class="metric"><span>Rows analysed</span><strong id="rowsMetric">0</strong></div>
+          <div class="metric"><span>Net amount in input</span><strong id="amountMetric">0</strong></div>
+          <div class="metric"><span>Assigned an E1-E5 theme</span><strong id="classifiedMetric">0%</strong></div>
+          <div class="metric"><span>No category match</span><strong id="unmatchedMetric">0</strong></div>
+          <div class="metric"><span>Needs a decision</span><strong id="reviewMetric">0</strong></div>
         </div>
+
+        <section class="priority-panel" aria-labelledby="priorityHeading">
+          <span class="panel-kicker">Where to start</span>
+          <h2 id="priorityHeading">Review the mapping gaps first</h2>
+          <p id="priorityText"></p>
+        </section>
 
         <div class="two-column">
           <section class="panel">
-            <h2>Spending by ESRS Theme</h2>
+            <h2>Net amount by primary ESRS theme</h2>
             <div id="themeBars" class="bars"></div>
           </section>
           <section class="panel">
-            <h2>Rows by Confidence</h2>
+            <h2>Confidence in the current classifications</h2>
             <div id="confidenceBars" class="bars"></div>
           </section>
         </div>
 
         <section class="panel">
-          <h2>Rows By ESRS Subcategory</h2>
-          <p class="section-note">A row can carry more than one subcategory where a purchase has cross-theme relevance.</p>
+          <h2>Primary-theme subcategories</h2>
+          <p class="section-note">A subcategory is shown only when it belongs to the row's assigned E1-E5 theme. Related cross-theme topics are retained in the exported file.</p>
           <div id="subcategoryBars" class="bars"></div>
         </section>
 
         <div class="two-column">
           <section class="panel">
-            <h2>Context To Check Before Interpreting Results</h2>
-            <p class="section-note">These prompts are not impact scores. They show the additional information that would make a broad category more meaningful.</p>
+            <h2>Topics that need more context</h2>
+            <p class="section-note">These are questions to resolve before treating a broad spending category as an environmental outcome.</p>
             <div id="guidanceBars" class="bars"></div>
           </section>
           <section class="panel">
-            <h2>Rows With Review Prompts</h2>
+            <h2>Sample rows needing a decision</h2>
+            <p class="section-note">Unmatched rows and keyword suggestions should be checked against the category hierarchy and invoice description.</p>
             <div class="table-wrap">
               <table>
                 <thead>
-                  <tr><th>ESRS</th><th>Category</th><th>Review focus</th><th>Amount</th></tr>
+                  <tr><th>ESRS</th><th>Category</th><th>Check area</th><th>Amount</th></tr>
                 </thead>
                 <tbody id="reviewRows"></tbody>
               </table>

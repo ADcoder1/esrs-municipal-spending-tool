@@ -47,6 +47,15 @@ class ContextGuidanceTests(unittest.TestCase):
         self.assertEqual(result.review_focus, ())
         self.assertEqual(result.subcategories, ())
 
+    def test_cross_theme_context_is_not_presented_as_a_primary_subcategory(self):
+        category = "Energy heating"
+        result = classify_row(
+            {"Inköpskategori 3": category, "Fakturatext": category},
+            mapping_for(category, "E2"),
+        )
+        self.assertEqual(result.subcategories, ())
+        self.assertIn("E1.1 Energy, heating and efficiency", result.related_topics)
+
 
 if __name__ == "__main__":
     unittest.main()

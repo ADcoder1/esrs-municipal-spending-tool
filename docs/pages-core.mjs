@@ -95,6 +95,7 @@ export function analyzeRows(invoiceRows, mappingRows) {
       "ESRS Review Focus": classification.reviewFocus.join(" | "),
       "ESRS Context Tags": classification.contextTags.join("; "),
       "ESRS Subcategories": classification.subcategories.join(" | "),
+      "ESRS Related Topics": classification.relatedTopics.join(" | "),
       "ESRS Amount": amount.toFixed(2),
     };
   });
@@ -479,7 +480,7 @@ function heuristicClassification(row) {
 
 function withContextGuidance(row, classification) {
   if (classification.primary === "None") {
-    return { ...classification, reviewFocus: [], contextTags: [], subcategories: [] };
+    return { ...classification, reviewFocus: [], contextTags: [], subcategories: [], relatedTopics: [] };
   }
   const text = guidanceText(row);
   const detailText = guidanceDetailText(row);
@@ -525,7 +526,14 @@ function withContextGuidance(row, classification) {
   if (ict) add("ICT equipment", "Check device lifespan, repairability, reuse or take-back arrangements, and relevant energy use for hardware or networks.");
   if (plastics) add("Plastics", "Consider both material use and pollution pathways. Plastic can cut across resource use and pollution rather than sit in only one theme.");
   if (classification.primary === "Unmatched") add("Mapping gap", "Review the category hierarchy and invoice description, then add a municipal mapping entry if this is a recurring purchase.");
-  return { ...classification, reviewFocus, contextTags, subcategories: subcategoriesFor(contextTags, detailText) };
+  const topicLabels = topicSubcategoriesFor(contextTags, detailText);
+  return {
+    ...classification,
+    reviewFocus,
+    contextTags,
+    subcategories: primarySubcategoriesFor(classification.primary, topicLabels),
+    relatedTopics: relatedTopicsFor(classification.primary, topicLabels),
+  };
 }
 
 function containsAny(text, needles) {
@@ -548,7 +556,7 @@ function guidanceDetailText(row) {
   return normalizeKey(columns.map((column) => row[column]).filter(Boolean).join(" "));
 }
 
-function subcategoriesFor(contextTags, detailText) {
+function topicSubcategoriesFor(contextTags, detailText) {
   const labels = [];
   const add = (...values) => values.forEach((value) => {
     if (!labels.includes(value)) labels.push(value);
@@ -574,6 +582,14 @@ function subcategoriesFor(contextTags, detailText) {
     else if (tag === "ICT equipment") add("E5.3 ICT equipment and lifecycle");
   });
   return labels;
+}
+
+function primarySubcategoriesFor(primary, topicLabels) {
+  return topicLabels.filter((label) => label.startsWith(`${primary}.`));
+}
+
+function relatedTopicsFor(primary, topicLabels) {
+  return topicLabels.filter((label) => !label.startsWith(`${primary}.`));
 }
 
 function amountFor(row) {

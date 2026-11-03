@@ -78,6 +78,7 @@ class Classification:
     review_focus: Tuple[str, ...] = ()
     context_tags: Tuple[str, ...] = ()
     subcategories: Tuple[str, ...] = ()
+    related_topics: Tuple[str, ...] = ()
 
 
 def load_mapping(path: Path) -> Dict[str, MappingEntry]:
@@ -549,9 +550,11 @@ def _with_context_guidance(row: Dict[str, str], classification: Classification) 
             "Mapping gap",
             "Review the category hierarchy and invoice description, then add a municipal mapping entry if this is a recurring purchase.",
         )
+    topic_labels = _topic_subcategories(tags, detail_text)
     classification.review_focus = tuple(focus)
     classification.context_tags = tuple(tags)
-    classification.subcategories = _subcategories_for(tags, detail_text)
+    classification.subcategories = _subcategories_for(classification.primary, topic_labels)
+    classification.related_topics = _related_topics_for(classification.primary, topic_labels)
     return classification
 
 
@@ -593,12 +596,12 @@ def _guidance_detail_text(row: Dict[str, str]) -> str:
     return normalize_key(" ".join(str(row.get(column, "")) for column in columns if row.get(column, "")))
 
 
-def _subcategories_for(context_tags: Sequence[str], detail_text: str) -> Tuple[str, ...]:
+def _topic_subcategories(context_tags: Sequence[str], detail_text: str) -> Tuple[str, ...]:
     """Map contextual signals to the practical E1-E5 hierarchy used in the tool.
 
-    A row can legitimately have more than one subcategory. In that case the
-    displayed primary/secondary ESRS lenses remain the formal first layer and
-    the subcategories make the cross-theme context visible.
+    These labels are then separated into a primary-theme subcategory and any
+    related cross-theme topics. This prevents an E2 row, for example, from
+    appearing to have an E1 subcategory in the dashboard.
     """
 
     labels: List[str] = []
@@ -644,6 +647,14 @@ def _subcategories_for(context_tags: Sequence[str], detail_text: str) -> Tuple[s
             add("E5.3 ICT equipment and lifecycle")
 
     return tuple(labels)
+
+
+def _subcategories_for(primary: str, topic_labels: Sequence[str]) -> Tuple[str, ...]:
+    return tuple(label for label in topic_labels if label.startswith(f"{primary}."))
+
+
+def _related_topics_for(primary: str, topic_labels: Sequence[str]) -> Tuple[str, ...]:
+    return tuple(label for label in topic_labels if not label.startswith(f"{primary}."))
 
 
 def _find_header_row(rows: Sequence[Sequence[str]]) -> int:

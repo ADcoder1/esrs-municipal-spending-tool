@@ -192,42 +192,44 @@
       <section id="results" class="hidden">
         <div class="metric-grid">
           <div class="metric"><span>Rows analysed</span><strong id="rowsMetric">0</strong></div>
-          <div class="metric"><span>Spend in this run</span><strong id="amountMetric">0</strong></div>
-          <div class="metric"><span>Mapped to E1-E5</span><strong id="classifiedMetric">0%</strong></div>
-          <div class="metric"><span>Rows needing review</span><strong id="reviewMetric">0</strong></div>
-          <div class="metric"><span>Rows with context prompts</span><strong id="contextMetric">0</strong></div>
+          <div class="metric"><span>Net amount in input</span><strong id="amountMetric">0</strong></div>
+          <div class="metric"><span>Assigned an E1-E5 theme</span><strong id="classifiedMetric">0%</strong></div>
+          <div class="metric"><span>No category match</span><strong id="unmatchedMetric">0</strong></div>
+          <div class="metric"><span>Needs a decision</span><strong id="reviewMetric">0</strong></div>
         </div>
+
+        <section class="priority-panel" aria-labelledby="priorityHeading">
+          <span class="panel-kicker">Where to start</span>
+          <h2 id="priorityHeading">Review the mapping gaps first</h2>
+          <p id="priorityText"></p>
+        </section>
 
         <nav class="tabs" aria-label="Results tabs">
           <button class="tab active" data-tab="overview">Overview</button>
-          <button class="tab" data-tab="city">Review guidance</button>
+          <button class="tab" data-tab="city">What to check</button>
           <button class="tab" data-tab="categories">Categories</button>
-          <button class="tab" data-tab="gaps">Missing information</button>
-          <button class="tab" data-tab="review">Rows to review</button>
+          <button class="tab" data-tab="gaps">Data gaps</button>
+          <button class="tab" data-tab="review">Decisions</button>
         </nav>
 
         <section class="tab-panel active" id="overview">
           <div class="two-column">
             <div class="panel">
-              <h2>Spending by ESRS Theme</h2>
+              <h2>Net amount by primary ESRS theme</h2>
               <div id="amountBars" class="bars"></div>
             </div>
             <div class="panel">
-              <h2>Confidence In Current Classifications</h2>
+              <h2>Confidence in the current classifications</h2>
               <div id="confidenceBars" class="bars"></div>
             </div>
-          </div>
-          <div class="panel subcategory-panel">
-            <h2>Rows By ESRS Subcategory</h2>
-            <p class="helper">A row can carry more than one subcategory where a purchase has cross-theme relevance.</p>
-            <div id="subcategoryBars" class="bars"></div>
           </div>
         </section>
 
         <section class="tab-panel" id="city">
           <div class="two-column">
             <div class="panel">
-              <h2>Context To Check Before Interpreting Results</h2>
+              <h2>Topics that need more context</h2>
+              <p class="helper">These are questions to resolve before treating a broad spending category as an environmental outcome.</p>
               <div id="cautionBars" class="bars"></div>
             </div>
             <div class="panel">
@@ -242,8 +244,13 @@
         </section>
 
         <section class="tab-panel" id="categories">
+          <div class="panel subcategory-panel">
+            <h2>Primary-theme subcategories</h2>
+            <p class="helper">A subcategory is shown only when it belongs to the row's assigned E1-E5 theme. Related cross-theme topics stay in the review guidance.</p>
+            <div id="subcategoryBars" class="bars"></div>
+          </div>
           <div class="panel">
-            <h2>Largest Categories In This Run</h2>
+            <h2>Largest category groups in this run</h2>
             <div class="table-wrap">
               <table>
                 <thead>
@@ -264,11 +271,12 @@
 
         <section class="tab-panel" id="review">
           <div class="panel">
-            <h2>Rows That Need Manual Review</h2>
+            <h2>Rows that need a manual decision</h2>
+            <p class="helper">These are a sample of rows that are unmatched, based on a keyword suggestion, or explicitly marked for review.</p>
             <div class="table-wrap">
               <table>
                 <thead>
-                  <tr><th>ESRS</th><th>ESRS subcategory</th><th>Confidence</th><th>Category</th><th>Review focus</th><th>Department</th><th>Supplier</th><th>Amount</th></tr>
+                  <tr><th>ESRS</th><th>Subcategory</th><th>Category</th><th>Check area</th><th>Department</th><th>Supplier</th><th>Amount</th></tr>
                 </thead>
                 <tbody id="reviewRows"></tbody>
               </table>

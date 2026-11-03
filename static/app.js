@@ -105,8 +105,9 @@ function renderResults(payload) {
   document.querySelector("#rowsMetric").textContent = formatNumber(payload.processed_rows);
   document.querySelector("#amountMetric").textContent = formatMoney(payload.total_amount);
   document.querySelector("#classifiedMetric").textContent = `${classifiedPercent}%`;
+  document.querySelector("#unmatchedMetric").textContent = formatNumber(payload.unmatched_rows);
   document.querySelector("#reviewMetric").textContent = formatNumber(payload.review_count);
-  document.querySelector("#contextMetric").textContent = formatNumber(payload.context_prompt_count);
+  renderPriority(payload, classifiedPercent);
 
   renderBars("#amountBars", payload.amount_by_esrs, "value", formatMoney, true);
   renderBars("#confidenceBars", counterToSeries(payload.confidence_counts), "value", formatNumber, false);
@@ -159,7 +160,7 @@ function renderCategories(rows) {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${escapeHtml(row.esrs)}<br><small>${escapeHtml(row.label)}</small></td>
-      <td>${escapeHtml(row.subcategories || (row.esrs === "None" ? "Not applicable (None)" : "Not specific enough in the available data"))}</td>
+      <td title="${escapeHtml(row.subcategories)}">${escapeHtml(shortTopicLabel(row.subcategories || (row.esrs === "None" ? "Not applicable" : "No primary-theme subcategory")))}</td>
       <td>${escapeHtml(row.category)}</td>
       <td>${formatNumber(row.rows)}</td>
       <td class="amount">${formatMoney(row.amount)}</td>
@@ -175,16 +176,55 @@ function renderReviewRows(rows) {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${escapeHtml(row.primary)}<br><small>${escapeHtml(row.label)}</small></td>
-      <td>${escapeHtml(row.subcategories || (row.primary === "None" ? "Not applicable (None)" : "Not specific enough in the available data"))}</td>
-      <td>${escapeHtml(row.confidence)}</td>
+      <td title="${escapeHtml(row.subcategories)}">${escapeHtml(shortTopicLabel(row.subcategories || (row.primary === "None" ? "Not applicable" : "No primary-theme subcategory")))}</td>
       <td>${escapeHtml(row.category)}</td>
-      <td>${escapeHtml(row.review_focus || "Check the matching category and invoice description.")}</td>
+      <td title="${escapeHtml(row.review_focus)}">${escapeHtml(row.context_tags || "Confirm category and invoice description")}</td>
       <td>${escapeHtml(row.department || row.unit)}</td>
       <td>${escapeHtml(row.supplier)}</td>
       <td class="amount">${formatMoney(row.amount)}</td>
     `;
     body.appendChild(tr);
   });
+}
+
+function renderPriority(payload, classifiedPercent) {
+  const heading = document.querySelector("#priorityHeading");
+  const text = document.querySelector("#priorityText");
+  const unmatchedRows = Number(payload.unmatched_rows) || 0;
+  const reviewRows = Number(payload.review_count) || 0;
+
+  if (unmatchedRows) {
+    heading.textContent = "Review the mapping gaps first";
+    text.textContent = `${formatNumber(unmatchedRows)} rows have no category match yet, representing ${formatMoney(payload.unmatched_amount)} in net input value. Resolve recurring gaps before using the theme totals for decisions. ${formatNumber(reviewRows)} rows also need a manual decision.`;
+    return;
+  }
+
+  heading.textContent = "Start with the rows that need a decision";
+  text.textContent = `${classifiedPercent}% of rows have an E1-E5 theme. There are no unmatched rows in this run; focus next on the ${formatNumber(reviewRows)} rows marked for a manual decision.`;
+}
+
+function shortTopicLabel(value) {
+  const labels = {
+    "E1.1 Energy, heating and efficiency": "E1.1 Energy and heating",
+    "E1.2 Transport, fleet and mobility": "E1.2 Transport and fleet",
+    "E1.3 Freight and deliveries": "E1.3 Freight and deliveries",
+    "E1.4 Climate adaptation and resilience": "E1.4 Climate adaptation",
+    "E1.5 Food and catering": "E1.5 Food and catering",
+    "E1.6 Construction and built environment": "E1.6 Construction",
+    "E2.1 Chemicals, hazardous substances and remediation": "E2.1 Chemicals and hazardous substances",
+    "E2.2 Cleaning products and services": "E2.2 Cleaning",
+    "E2.3 Plastics and pollution pathways": "E2.3 Plastics",
+    "E3.1 Water supply and use": "E3.1 Water supply and use",
+    "E3.2 Wastewater, stormwater and water systems": "E3.2 Wastewater and stormwater",
+    "E3.3 Marine and coastal resources": "E3.3 Marine and coastal",
+    "E4.1 Green space and ecological management": "E4.1 Green space",
+    "E4.2 Land use and habitat": "E4.2 Land and habitat",
+    "E5.1 Waste prevention, reuse and recycling": "E5.1 Waste and reuse",
+    "E5.2 Durable goods, repair and take-back": "E5.2 Durable goods and repair",
+    "E5.3 ICT equipment and lifecycle": "E5.3 ICT lifecycle",
+    "E5.4 Materials and packaging": "E5.4 Materials and packaging",
+  };
+  return String(value || "").split(" | ").map((label) => labels[label] || label).join(" | ");
 }
 
 function renderMethodology(notes) {
