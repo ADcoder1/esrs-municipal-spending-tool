@@ -243,10 +243,10 @@ function renderResults(payload) {
   document.querySelector("#reviewMetric").textContent = formatNumber(payload.review_count);
   renderPriority(payload, classifiedPercent);
 
-  renderBars("#amountBars", payload.amount_by_esrs, "value", formatValueInThousands, true);
-  renderBars("#confidenceBars", counterToSeries(payload.confidence_counts), "value", formatNumber, false);
-  renderBars("#cautionBars", counterToSeries(payload.caution_counts), "value", formatNumber, false);
-  renderBars("#subcategoryBars", counterToSeries(payload.subcategory_counts), "value", formatNumber, false);
+  renderBars("#amountBars", payload.amount_by_esrs, "value", formatValueWithUnit, true);
+  renderBars("#confidenceBars", counterToSeries(payload.confidence_counts), "value", formatPurchaseCount, false);
+  renderReviewGuidance("#guidanceList", payload.caution_counts);
+  renderBars("#subcategoryBars", counterToSeries(payload.subcategory_counts), "value", formatPurchaseCount, false);
   renderBars("#climateBars", counterToSeries(payload.climate_split), "value", formatNumber, false);
   renderBars("#gapBars", payload.data_gaps, "missing", (value, item) => `${formatNumber(value)} (${item.percent.toFixed(1)}%)`, false);
   renderMethodology(payload.methodology_notes || []);
@@ -310,11 +310,9 @@ function renderReviewRows(rows) {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${escapeHtml(readableThemeLabel(row.primary, row.label))}</td>
-      <td title="${escapeHtml(row.subcategories)}">${escapeHtml(shortTopicLabel(row.subcategories || (row.primary === "None" ? "Not applicable" : "No detailed topic available")))}</td>
       <td>${escapeHtml(row.category)}</td>
-      <td title="${escapeHtml(row.review_focus)}">${escapeHtml(row.context_tags || "Confirm category and invoice description")}</td>
-      <td>${escapeHtml(row.department || row.unit)}</td>
-      <td>${escapeHtml(row.supplier)}</td>
+      <td>${escapeHtml(reviewReason(row.primary, row.confidence, row.method))}</td>
+      <td title="${escapeHtml(row.review_focus)}">${escapeHtml(reviewPrompt(row.context_tags))}</td>
       <td class="amount">${formatValueInThousands(row.amount)}</td>
     `;
     body.appendChild(tr);
@@ -467,9 +465,66 @@ function formatValueInThousands(value) {
   return currency.format((Number(value) || 0) / 1000);
 }
 
+function formatValueWithUnit(value) {
+  return `${formatValueInThousands(value)} ('000)`;
+}
+
 function formatPurchaseCount(value) {
   const count = Number(value) || 0;
   return `${formatNumber(count)} ${count === 1 ? "purchase" : "purchases"}`;
+}
+
+const REVIEW_PROMPTS = {
+  "Food and catering": "Product type, contract criteria, sourcing and food-waste requirements.",
+  "Construction and land": "Materials, reuse requirements, energy performance, land use and biodiversity conditions.",
+  "Transport and fleet": "Travel purpose, mode, vehicle or fuel, and available alternatives.",
+  "Freight and deliveries": "Vehicle or fuel, route, load and delivery-efficiency information.",
+  "Energy and heating": "Energy source and whether the purchase concerns supply, efficiency or fossil combustion.",
+  "Climate adaptation": "The resilience function, such as flood, stormwater, heat or building measures.",
+  "Chemicals and hazardous substances": "Substance, hazard profile, likely release pathway and disposal route.",
+  "Cleaning products and services": "Chemical content, concentration, product labels and disposal information.",
+  "Water and wastewater": "Water quantity, quality, wastewater or stormwater function, and infrastructure effects.",
+  "Marine and coastal resources": "Whether there is a direct marine or coastal dependency or impact.",
+  "Green space and biodiversity": "Habitat outcome, native species, pesticide use and ecological-management practice.",
+  "Waste, reuse and circularity": "Treatment path and whether the purchase prevents waste, enables reuse or only manages disposal.",
+  "Durability and repair": "Lifespan, warranty, repairability, spare parts, reuse or take-back arrangements.",
+  "ICT equipment": "Device lifespan, repairability, reuse or take-back arrangements, and relevant energy use.",
+  "Plastics": "Material use and potential pollution pathways.",
+  "Mapping gap": "Invoice description and category hierarchy, then add a local guide entry if this is recurring.",
+};
+
+function reviewPrompt(contextTags) {
+  const tags = String(contextTags || "")
+    .split(";")
+    .map((tag) => tag.trim())
+    .filter(Boolean);
+  const prompts = [...new Set(tags.map((tag) => REVIEW_PROMPTS[tag]).filter(Boolean))];
+  return prompts.join(" ") || "Confirm the purchasing category and use the invoice description or contract information where available.";
+}
+
+function reviewReason(primary, confidence, method) {
+  if (primary === "Unmatched") return "No matching entry exists in the current category guide.";
+  if (String(method || "").startsWith("heuristic")) return "A keyword suggested this link, but the tool cannot confirm the purchase context.";
+  if (String(confidence || "").toLowerCase().includes("review")) return "The current category guide marks this link for review.";
+  return "The purchasing category is broad and needs local context.";
+}
+
+function renderReviewGuidance(selector, counts) {
+  const element = document.querySelector(selector);
+  element.innerHTML = "";
+  const rows = Object.entries(counts || {})
+    .map(([label, value]) => ({ label, value }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 10);
+  rows.forEach((row) => {
+    const item = document.createElement("article");
+    item.className = "review-guidance-item";
+    item.innerHTML = `<div class="review-guidance-meta"><strong>${escapeHtml(row.label)}</strong><span>${escapeHtml(formatPurchaseCount(row.value))}</span></div><p><strong>Useful local information:</strong> ${escapeHtml(reviewPrompt(row.label))}</p>`;
+    element.appendChild(item);
+  });
+  if (!rows.length) {
+    element.textContent = "No additional review prompts were created from this file.";
+  }
 }
 
 function formatNumber(value) {

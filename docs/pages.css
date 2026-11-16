@@ -330,6 +330,14 @@ button.secondary,
   margin-top: 7px;
 }
 
+.metric small {
+  color: var(--muted);
+  display: block;
+  font-size: 12px;
+  line-height: 1.35;
+  margin-top: 6px;
+}
+
 .priority-panel {
   background: #fffdf6;
   border: 1px solid #ead8a9;
@@ -392,6 +400,62 @@ h2 {
 .bars {
   display: grid;
   gap: 12px;
+}
+
+.explanation-list {
+  display: grid;
+  gap: 0;
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+}
+
+.explanation-list li {
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+  padding: 10px 0;
+}
+
+.explanation-list strong,
+.review-guidance-item strong {
+  color: var(--ink);
+}
+
+.review-guidance {
+  display: grid;
+}
+
+.review-guidance-item {
+  border-top: 1px solid var(--line);
+  padding: 13px 0;
+}
+
+.review-guidance-item:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.review-guidance-meta {
+  align-items: baseline;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.review-guidance-meta span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: right;
+}
+
+.review-guidance-item p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 6px 0 0;
 }
 
 .bar-row {

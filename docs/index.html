@@ -105,53 +105,58 @@
         <section class="metric-group" aria-labelledby="attentionHeading">
           <h2 id="attentionHeading" class="metric-group-label">What needs attention</h2>
           <div class="metric-grid metric-grid-primary">
-            <div class="metric metric-action"><span>Needs a human check</span><strong id="reviewMetric">0</strong></div>
-            <div class="metric metric-gap"><span>Not yet categorised</span><strong id="unmatchedMetric">0</strong></div>
-            <div class="metric metric-coverage"><span>Linked to an environmental topic</span><strong id="classifiedMetric">0%</strong></div>
+            <div class="metric metric-action"><span>Purchases needing a human check</span><strong id="reviewMetric">0</strong><small>Purchase rows</small></div>
+            <div class="metric metric-gap"><span>Purchases not yet categorised</span><strong id="unmatchedMetric">0</strong><small>Purchase rows</small></div>
+            <div class="metric metric-coverage"><span>Linked to an environmental topic</span><strong id="classifiedMetric">0%</strong><small>Share of purchase rows</small></div>
           </div>
         </section>
 
         <section class="metric-group" aria-labelledby="fileHeading">
           <h2 id="fileHeading" class="metric-group-label">About this file</h2>
           <div class="metric-grid metric-grid-secondary">
-            <div class="metric"><span>Purchases reviewed</span><strong id="rowsMetric">0</strong></div>
-            <div class="metric"><span>Total value reviewed ('000)</span><strong id="amountMetric">0</strong></div>
-            <div class="metric"><span>Outside environmental scope</span><strong id="noneMetric">0</strong></div>
+            <div class="metric"><span>Purchases in this file</span><strong id="rowsMetric">0</strong><small>Purchase rows</small></div>
+            <div class="metric"><span>Total purchase value</span><strong id="amountMetric">0</strong><small>Value in '000, same currency as the file</small></div>
+            <div class="metric"><span>Outside environmental scope</span><strong id="noneMetric">0</strong><small>Purchase rows</small></div>
           </div>
         </section>
 
         <div class="two-column">
           <section class="panel">
-            <h2>Where spending may relate to the environment</h2>
-            <p class="section-note">This is a first organisation of spending, not an impact score. Values are shown in '000.</p>
+            <h2>Value of purchases by environmental theme</h2>
+            <p class="section-note">Values show total purchase value in '000, using the same currency as your file. These are environmental review themes, not impact scores.</p>
             <div id="themeBars" class="bars"></div>
           </section>
           <section class="panel">
-            <h2>How sure are the suggested links?</h2>
-            <p class="section-note">“Needs review” means a person should confirm the category before using it.</p>
+            <h2>How the tool made the suggested links</h2>
+            <p class="section-note">Numbers below are purchase rows, not amounts. Confidence describes the strength of the category link, not environmental performance.</p>
             <div id="confidenceBars" class="bars"></div>
+            <ul class="explanation-list">
+              <li><strong>High:</strong> a category-guide entry marked as high confidence matched the purchase.</li>
+              <li><strong>Medium:</strong> a category-guide entry marked as medium confidence matched the purchase. Use it as a starting point where context remains broad.</li>
+              <li><strong>Needs review:</strong> no suitable category-guide entry was found, a keyword suggested the link, or the guide itself flags it for review.</li>
+            </ul>
           </section>
         </div>
 
         <section class="panel">
-          <h2>More detailed environmental topics</h2>
-          <p class="section-note">A detailed topic is shown only when it belongs to the main environmental topic assigned to the purchase.</p>
+          <h2>Working-level purchasing topics under E1-E5</h2>
+          <p class="section-note">E1-E5 are the five broad ESRS environmental themes. The labels below are practical procurement topics used by this tool to make those themes useful for municipal spending. They are not official ESRS disclosure subcategories. Numbers show purchase rows.</p>
           <div id="subcategoryBars" class="bars"></div>
         </section>
 
         <div class="two-column">
           <section class="panel">
-            <h2>Information that would help</h2>
-            <p class="section-note">These are the details that would make a broad category more meaningful.</p>
-            <div id="guidanceBars" class="bars"></div>
+            <h2>Your review can improve the results</h2>
+            <p class="section-note">A financial export cannot show every detail that matters. These prompts identify the local information that procurement, finance or environmental colleagues can use to improve the category guide.</p>
+            <div id="guidanceList" class="review-guidance"></div>
           </section>
           <section class="panel">
-            <h2>Examples that need a human check</h2>
-            <p class="section-note">These are purchases that are not yet categorised or need a person to confirm the suggested link.</p>
+            <h2>Priority examples for review</h2>
+            <p class="section-note">Each row is one representative example. Use it to decide whether to confirm, revise or add a recurring local category-guide entry.</p>
             <div class="table-wrap">
               <table>
                 <thead>
-                  <tr><th>Environmental topic</th><th>Purchasing category</th><th>What to check</th><th>Value ('000)</th></tr>
+                  <tr><th>Suggested environmental theme</th><th>Current purchasing category</th><th>Why the tool needs help</th><th>What a colleague can check</th><th>Value ('000)</th></tr>
                 </thead>
                 <tbody id="reviewRows"></tbody>
               </table>

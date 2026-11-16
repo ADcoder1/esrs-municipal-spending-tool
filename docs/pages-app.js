@@ -276,10 +276,10 @@ function render(rows, mappingCount) {
   document.querySelector("#reviewMetric").textContent = decisionRows.length.toLocaleString();
   renderPriority(counts.Unmatched || 0, unmatchedAmount, decisionRows.length, classifiedPercent);
 
-  renderBars("#themeBars", Object.entries(amounts).map(([code, value]) => ({ label: readableThemeLabel(code, ESRS_LABELS[code] || ""), value })), formatValueInThousands);
-  renderBars("#confidenceBars", Object.entries(confidence).map(([label, value]) => ({ label, value })), (value) => value.toLocaleString());
-  renderBars("#guidanceBars", Object.entries(guidance).map(([label, value]) => ({ label, value })), (value) => value.toLocaleString());
-  renderBars("#subcategoryBars", Object.entries(subcategories).map(([label, value]) => ({ label, value })), (value) => value.toLocaleString());
+  renderBars("#themeBars", Object.entries(amounts).map(([code, value]) => ({ label: readableThemeLabel(code, ESRS_LABELS[code] || ""), value })), formatValueWithUnit);
+  renderBars("#confidenceBars", Object.entries(confidence).map(([label, value]) => ({ label, value })), formatPurchaseCount);
+  renderReviewGuidance("#guidanceList", guidance);
+  renderBars("#subcategoryBars", Object.entries(subcategories).map(([label, value]) => ({ label, value })), formatPurchaseCount);
 
   const categoryRows = Object.values(category).sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount)).slice(0, 12);
   const body = document.querySelector("#categoryRows");
@@ -296,7 +296,7 @@ function render(rows, mappingCount) {
     .slice(0, 25)
     .forEach((row) => {
       const tr = document.createElement("tr");
-      tr.innerHTML = `<td>${escapeHtml(readableThemeLabel(row["ESRS Primary"], ESRS_LABELS[row["ESRS Primary"]] || ""))}</td><td>${escapeHtml(bestCategory(row))}</td><td title="${escapeHtml(row["ESRS Review Focus"] || "")}">${escapeHtml(row["ESRS Context Tags"] || "Confirm category and invoice description")}</td><td>${formatValueInThousands(parseNumber(row["ESRS Amount"]))}</td>`;
+      tr.innerHTML = `<td>${escapeHtml(readableThemeLabel(row["ESRS Primary"], ESRS_LABELS[row["ESRS Primary"]] || ""))}</td><td>${escapeHtml(bestCategory(row))}</td><td>${escapeHtml(reviewReason(row["ESRS Primary"], row["ESRS Confidence"], row["ESRS Method"]))}</td><td title="${escapeHtml(row["ESRS Review Focus"] || "")}">${escapeHtml(reviewPrompt(row["ESRS Context Tags"]))}</td><td>${formatValueInThousands(parseNumber(row["ESRS Amount"]))}</td>`;
       reviewBody.appendChild(tr);
     });
 }
@@ -352,9 +352,66 @@ function formatValueInThousands(value) {
   return formatNumber((Number(value) || 0) / 1000);
 }
 
+function formatValueWithUnit(value) {
+  return `${formatValueInThousands(value)} ('000)`;
+}
+
 function formatPurchaseCount(value) {
   const count = Number(value) || 0;
   return `${formatNumber(count)} ${count === 1 ? "purchase" : "purchases"}`;
+}
+
+const REVIEW_PROMPTS = {
+  "Food and catering": "Product type, contract criteria, sourcing and food-waste requirements.",
+  "Construction and land": "Materials, reuse requirements, energy performance, land use and biodiversity conditions.",
+  "Transport and fleet": "Travel purpose, mode, vehicle or fuel, and available alternatives.",
+  "Freight and deliveries": "Vehicle or fuel, route, load and delivery-efficiency information.",
+  "Energy and heating": "Energy source and whether the purchase concerns supply, efficiency or fossil combustion.",
+  "Climate adaptation": "The resilience function, such as flood, stormwater, heat or building measures.",
+  "Chemicals and hazardous substances": "Substance, hazard profile, likely release pathway and disposal route.",
+  "Cleaning products and services": "Chemical content, concentration, product labels and disposal information.",
+  "Water and wastewater": "Water quantity, quality, wastewater or stormwater function, and infrastructure effects.",
+  "Marine and coastal resources": "Whether there is a direct marine or coastal dependency or impact.",
+  "Green space and biodiversity": "Habitat outcome, native species, pesticide use and ecological-management practice.",
+  "Waste, reuse and circularity": "Treatment path and whether the purchase prevents waste, enables reuse or only manages disposal.",
+  "Durability and repair": "Lifespan, warranty, repairability, spare parts, reuse or take-back arrangements.",
+  "ICT equipment": "Device lifespan, repairability, reuse or take-back arrangements, and relevant energy use.",
+  "Plastics": "Material use and potential pollution pathways.",
+  "Mapping gap": "Invoice description and category hierarchy, then add a local guide entry if this is recurring.",
+};
+
+function reviewPrompt(contextTags) {
+  const tags = String(contextTags || "")
+    .split(";")
+    .map((tag) => tag.trim())
+    .filter(Boolean);
+  const prompts = [...new Set(tags.map((tag) => REVIEW_PROMPTS[tag]).filter(Boolean))];
+  return prompts.join(" ") || "Confirm the purchasing category and use the invoice description or contract information where available.";
+}
+
+function reviewReason(primary, confidence, method) {
+  if (primary === "Unmatched") return "No matching entry exists in the current category guide.";
+  if (String(method || "").startsWith("heuristic")) return "A keyword suggested this link, but the tool cannot confirm the purchase context.";
+  if (String(confidence || "").toLowerCase().includes("review")) return "The current category guide marks this link for review.";
+  return "The purchasing category is broad and needs local context.";
+}
+
+function renderReviewGuidance(selector, counts) {
+  const element = document.querySelector(selector);
+  element.innerHTML = "";
+  const rows = Object.entries(counts)
+    .map(([label, value]) => ({ label, value }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 10);
+  rows.forEach((row) => {
+    const item = document.createElement("article");
+    item.className = "review-guidance-item";
+    item.innerHTML = `<div class="review-guidance-meta"><strong>${escapeHtml(row.label)}</strong><span>${escapeHtml(formatPurchaseCount(row.value))}</span></div><p><strong>Useful local information:</strong> ${escapeHtml(reviewPrompt(row.label))}</p>`;
+    element.appendChild(item);
+  });
+  if (!rows.length) {
+    element.textContent = "No additional review prompts were created from this file.";
+  }
 }
 
 function shortTopicLabel(value) {
